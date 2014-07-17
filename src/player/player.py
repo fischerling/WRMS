@@ -13,6 +13,7 @@ import dbus.service
 import dbus.mainloop.glib
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+dbus.mainloop.glib.threads_init()
 
 from queue import Dyn_Queue
 from song import Song
