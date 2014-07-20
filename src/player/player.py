@@ -20,7 +20,8 @@ from song import Song
 import WRMSconf
 
 import logging
-logging.basicConfig(filename = WRMSconf.logfile, level = WRMSconf.loglevel, filemode = 'w')
+logging.basicConfig(filename = WRMSconf.logfile,
+                    level = WRMSconf.loglevel, filemode = 'w')
 
 music_dir = WRMSconf.music_dir
 
@@ -32,7 +33,7 @@ class Player(dbus.service.Object):
             self.queue = Dyn_Queue()
 
         self.current_song = None
-
+        self.current_song_taglist = None
         # gst
         # Create our player object
         self.player = Gst.ElementFactory.make('playbin', None)
@@ -42,8 +43,10 @@ class Player(dbus.service.Object):
         self.bus.add_signal_watch()
 
         self.bus.connect("message::eos", self.on_eos)
+        self.bus.connect("message::tag", self.on_tag)
         self.bus.connect("message::error", self.on_error)
-        self.bus.connect("message::state-changed", self.on_message_state_changed)
+        self.bus.connect("message::state-changed",
+                         self.on_message_state_changed)
         
         # dbus
 
@@ -54,11 +57,14 @@ class Player(dbus.service.Object):
         self.loop = GObject.MainLoop()
         self.loop.run()
         
-
     def on_eos(self, bus, msg):
         logging.warning("eos message received!")
         self.player.set_state(Gst.State.NULL)
         self.next()
+
+    def on_tag(self, bus, msg):
+        self.current_song_taglist = msg.parse_tag()
+        logging.warning("tags recieved and saved")
 
     def on_error(self, bus, msg):
         logging.error(msg.parse_error())
@@ -157,6 +163,11 @@ class Player(dbus.service.Object):
                          in_signature='', out_signature='s')
     def get_queue_string(self):
         return str(self.queue.get_list_of_all_raw())
+
+    @dbus.service.method("org.WRMS.player",
+                         in_signature='', out_signature='s')
+    def get_current_metadata(self):
+        return str(self.current_song_taglist.tostring())
 
 
 if __name__ == "__main__":
