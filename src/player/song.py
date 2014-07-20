@@ -26,12 +26,12 @@ class Song(ComparableMixin):
     def upvote(self):
         self.weight += 1
         self.upvotes += 1
-        logging.debug(str(self) + "upvoted")
+        logging.debug(str(self) + " upvoted")
 
     def downvote(self):
         self.weight -= 1
         self.downvotes += 1
-        logging.debug(str(self) + "downvoted")
+        logging.debug(str(self) + " downvoted")
 
     def get_weight(self):
         return self.weight
