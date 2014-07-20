@@ -56,7 +56,7 @@ class Player(dbus.service.Object):
         
 
     def on_eos(self, bus, msg):
-        logging.warning("eos message received!" + str(msg.parse()))
+        logging.warning("eos message received!")
         self.player.set_state(Gst.State.NULL)
         self.next()
 
@@ -99,7 +99,8 @@ class Player(dbus.service.Object):
         logging.info(str(ret))
         self.pop_next_song()
         if self.current_song == None:
-            self.pause()
+            ret = self.player.set_state(Gst.State.NULL)
+            logging.info(str(ret))
             logging.warning("No songs left in the queue")
         else:
             self.play()
@@ -107,7 +108,7 @@ class Player(dbus.service.Object):
     @dbus.service.method("org.WRMS.player",
                          in_signature='', out_signature='')
     def pause(self):
-        ret = self.player.set_state(Gst.State.READY)
+        ret = self.player.set_state(Gst.State.PAUSED)
         logging.info(str(ret))
         logging.info("player paused")
         
@@ -151,3 +152,12 @@ class Player(dbus.service.Object):
                          in_signature='', out_signature='a(s(sss))')
     def get_queue_raw(self):
         return self.queue.get_list_of_all_raw()
+
+    @dbus.service.method("org.WRMS.player",
+                         in_signature='', out_signature='s')
+    def get_queue_string(self):
+        return str(self.queue.get_list_of_all_raw())
+
+
+if __name__ == "__main__":
+    p = Player()
