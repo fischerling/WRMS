@@ -9,8 +9,7 @@ class Dyn_Queue:
     
     def __init__(self, *song):
         for s in song:
-            if isinstance(s, Song):
-                self.queue.append(s)
+            self.queue.append(s)
         logging.info("playlist created with " + str(self.get_list_of_all())
                      + " as start value")
 
