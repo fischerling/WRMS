@@ -11,6 +11,7 @@ class Dyn_Queue:
         # parsing the parameters
         for s in song:
             self.queue.append(s)
+        heapq._heapify_max(self.queue)
         logging.info("playlist created with " + str(self.get_list_of_all())
                      + " as start value")
 
@@ -21,7 +22,7 @@ class Dyn_Queue:
             if s == song or s.get_name() == song :
                 self.queue.remove(s)
                 # building a new heap after deleting
-                heapq.heapify(self.queue)
+                heapq._heapify_max(self.queue)
                 logging.debug(song + "deleted => " +  str(self.get_list_of_all()))
                 return 0
         return 1
@@ -29,7 +30,7 @@ class Dyn_Queue:
     # pops the first song in the queue
     def pop(self):
         if len(self.queue) > 0:
-            return heapq.heappop(self.queue)
+            return heapq._heappop_max(self.queue)
         else:
             logging.warning("Can't pop Song: Playlist is empty!")
             return None
@@ -37,36 +38,39 @@ class Dyn_Queue:
     # append $song to the queue 
     def append(self, new_song):
         if isinstance(new_song, Song):
-            heapq.heappush(self.queue, new_song)
-            return 0
+            self.queue.append(new_song)
         else:
             # catching a possible error while creating a new Song_object
             try:
-                heapq.heappush(self.queue, Song(new_song))
-                return 0
+                self.queue.append(Song(new_song))
             except IOError:
                 logging.error("can't create song: no file associated to " + new_song)
                 return 1
+            heapq._heapify_max(self.queue)
+            return 0
 
     # upvote $song
     def upvote_song(self, song):
+        res = 1
         for s in self.queue:
             if s == song or s.get_name() == song:
                 s.upvote()
-                return 0
+                res = 0
+                break
         # building a new hash with the changed ranks
-        heapq.heapify(self.queue)
-        return 1
+        heapq._heapify_max(self.queue)
+        return res
     
     # downvote $song
     def downvote_song(self, song):
-        res = 0
+        res = 1
         for s in self.queue:
             if s == song or s.get_name() == song:
                 s.downvote()
-                return 0
-        heapq.heapify(self.queue)
-        return 1
+                res = 0
+                break
+        heapq._heapify_max(self.queue)
+        return res
 
     # return a list of all songs in the queue
     def get_list_of_all(self):
