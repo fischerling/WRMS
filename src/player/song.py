@@ -20,7 +20,7 @@ class Song(ComparableMixin):
         return self.weight, self.path
 
     def __repr__(self):
-        return "Song: {0} Weight: {1}".format(self.path, self.weight)
+        return "(Song: {0}; Weight: {1})".format(self.path, self.weight)
 	# Printing the rank (not the weight) should now be done by the playlist
 
     def upvote(self):
