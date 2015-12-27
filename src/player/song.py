@@ -1,6 +1,7 @@
-import os
+import os, sys
 import logging
 
+sys.path.insert(0,"..")
 import WRMSconf
 from comparableMixin import ComparableMixin
 

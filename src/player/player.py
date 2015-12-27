@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os
+import sys
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -17,6 +18,8 @@ dbus.mainloop.glib.threads_init()
 
 from queue import Dyn_Queue
 from song import Song
+
+sys.path.insert(0,"..")
 import WRMSconf
 
 import logging
@@ -155,7 +158,7 @@ class Player(dbus.service.Object):
         return self.queue.get_list_of_all()
         
     @dbus.service.method("org.WRMS.player",
-                         in_signature='', out_signature='a(s(sss))')
+                         in_signature='', out_signature='a(s(iii))')
     def get_queue_raw(self):
         return self.queue.get_list_of_all_raw()
 
