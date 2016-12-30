@@ -39,36 +39,26 @@ class Dyn_Queue:
         if isinstance(new_song, Song):
             self.queue.append(new_song)
         else:
-            try:
-                self.queue.append(Song(new_song))
-            except IOError:
-                logging.error("can't create song: no file associated to " + new_song)
-                return 1
+            self.queue.append(Song(new_song))
             heapq._heapify_max(self.queue)
-            return 0
 
     def upvote_song(self, song):
         """Upvote song in the queue"""
-        res = 1
         for s in self.queue:
             if s == song or s.get_name() == song:
                 s.upvote()
-                res = 0
-                break
-        # building a new hash with the changed ranks
-        heapq._heapify_max(self.queue)
-        return res
+                heapq._heapify_max(self.queue)
+                return 0
+        return 1
     
     def downvote_song(self, song):
         """Downvote song in the queue"""
-        res = 1
         for s in self.queue:
             if s == song or s.get_name() == song:
                 s.downvote()
-                res = 0
-                break
-        heapq._heapify_max(self.queue)
-        return res
+                heapq._heapify_max(self.queue)
+                return 0
+        return 1
 
     def get_list_of_all(self):
         """Return a list of all songs"""
