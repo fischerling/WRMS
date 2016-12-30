@@ -15,8 +15,8 @@ class Dyn_Queue:
         logging.info("playlist created with " + str(self.get_list_of_all())
                      + " as start value")
 
-    # delete the first appereance of $song in the queue
     def delete(self, song):
+        """Delete a song from the queue"""
         for s in self.queue:
             # checking if ether $song or a $song.name is in the queue
             if s == song or s.get_name() == song :
@@ -27,20 +27,18 @@ class Dyn_Queue:
                 return 0
         return 1
 
-    # pops the first song in the queue
     def pop(self):
+        """Remove and return the first song from the queue"""
         if len(self.queue) > 0:
             return heapq._heappop_max(self.queue)
         else:
-            logging.warning("Can't pop Song: Playlist is empty!")
             return None
 
-    # append $song to the queue 
     def append(self, new_song):
+        """Append a song to the queue"""
         if isinstance(new_song, Song):
             self.queue.append(new_song)
         else:
-            # catching a possible error while creating a new Song_object
             try:
                 self.queue.append(Song(new_song))
             except IOError:
@@ -49,8 +47,8 @@ class Dyn_Queue:
             heapq._heapify_max(self.queue)
             return 0
 
-    # upvote $song
     def upvote_song(self, song):
+        """Upvote song in the queue"""
         res = 1
         for s in self.queue:
             if s == song or s.get_name() == song:
@@ -61,8 +59,8 @@ class Dyn_Queue:
         heapq._heapify_max(self.queue)
         return res
     
-    # downvote $song
     def downvote_song(self, song):
+        """Downvote song in the queue"""
         res = 1
         for s in self.queue:
             if s == song or s.get_name() == song:
@@ -72,12 +70,12 @@ class Dyn_Queue:
         heapq._heapify_max(self.queue)
         return res
 
-    # return a list of all songs in the queue
     def get_list_of_all(self):
+        """Return a list of all songs"""
         return heapq.nlargest(len(self.queue), self.queue)
         
-    # returns every song represented by a tuple of its attributes 
     def get_list_of_all_raw(self):
+        """Return a list of all songs reprsented by a tuple of their attributes"""
         return [x.get_all() for x in heapq.nlargest(len(self.queue), self.queue)]
 
     def __repr__(self):
