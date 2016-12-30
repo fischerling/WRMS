@@ -6,25 +6,18 @@ Wireless Ranked Media System
 IDEA
 ----
 
-Imagine a common situation: People sitting at a party, having fun, but the music that is playing right
-now just does not have the drive you would like do experience right now. The first solution that comes to mind is
-to play your own music, but it is usually hard to reach consent, especially at huge parties. So why not a DJ-free
-ranking system usable by everyone? That is exactly what we are looking to create, the WRMS.
+Imagine a common situation: People sitting at a party, having fun, but the music
+currently playing just does not have the drive you would like to experience right
+now. The first solution that comes to mind is to play your own music, but it is
+usually hard to reach consent, especially at huge parties. So one solution could
+be a DJ-free ranking system usable by everyone. Welcome the **WRMS**.
 
-We are trying to create a flawless experience for parties or just with friends by combining a convenient upvote/downvote-
-system similiar to the one used on reddit, with a player that ranks queued songs via network according to the votes given
-by the users. With this system, we are hopefully able to achieve a new way to enjoy music with any kind of company.
+WRMS consists of a player, which is controlled over dbus and features a weighted
+playlist. The playlist implements a upvote/downvote system deciding the order
+in which the queued songs are played.
+And a simple and easy to use frontend to control the player.
 
 LICENSE
 -------
 
 GNU General Public License (Version 3)
-
-AUTHORS
--------
-
-  * Nick   : fischerling
-  GitHub : <https://github.com/fischerling>
-
-  * Nick   : ForeverFreek
-  GitHub : <https://github.com/foreverfreek>
