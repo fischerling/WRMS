@@ -19,7 +19,7 @@ dbus.mainloop.glib.threads_init()
 from queue import Dyn_Queue
 from song import Song
 
-sys.path.insert(0,"..")
+sys.path.insert(0,".")
 import WRMSconf
 
 import logging
@@ -37,6 +37,8 @@ class Player(dbus.service.Object):
 
         self.current_song = None
         self.current_song_taglist = None
+
+        self.last_action= ""
         # gst
         # Create our player object
         self.player = Gst.ElementFactory.make('playbin', None)
@@ -63,7 +65,9 @@ class Player(dbus.service.Object):
     def on_eos(self, bus, msg):
         logging.warning("eos message received!")
         self.player.set_state(Gst.State.NULL)
-        self.next()
+        # pop next song and try playing again
+        self._next()
+        self._play()
 
     def on_tag(self, bus, msg):
         self.current_song_taglist = msg.parse_tag()
@@ -83,40 +87,48 @@ class Player(dbus.service.Object):
         elif isinstance(song, str):
             return "file://" + music_dir + '/' + song
         return ""
-    
-    def pop_next_song(self):
-        self.current_song = self.queue.pop()
-        logging.debug("song popped")
 
-        
+    def _play(self):
+        """set playbin uri to current_song and start playing"""
+        if self.current_song != None:
+            self.player.set_property("uri", self.urify(self.current_song))
+            ret = self.player.set_state(Gst.State.PLAYING)
+            logging.debug(str(ret))
+            logging.info("player starts playing - " + str(self.current_song))
+        else:
+            logging.info("no song to play")
+
+    def _next(self):
+        """pop next song from queue"""
+        logging.info("pop next song from queue")
+        self.current_song = self.queue.pop()
+
     ############################### controls #################################
 
     @dbus.service.method("org.WRMS.player",
                          in_signature='', out_signature='')
     def play(self):
+        logging.info("play cmd recieved")
         if self.current_song == None:
-            self.next()
-        self.player.set_property("uri", self.urify(self.current_song))
-        ret = self.player.set_state(Gst.State.PLAYING)
-        logging.info(str(ret))
-        logging.info("player playing")
+            self._next()
+        self.last_action = "started playing"
+        self._play()
 
     @dbus.service.method("org.WRMS.player",
                          in_signature='', out_signature='')
     def next(self):
-        ret = self.player.set_state(Gst.State.NULL)
-        logging.info(str(ret))
-        self.pop_next_song()
-        if self.current_song == None:
-            ret = self.player.set_state(Gst.State.NULL)
-            logging.info(str(ret))
-            logging.warning("No songs left in the queue")
-        else:
-            self.play()
+        logging.info("next cmd recieved")
+        self.last_action = "next song"
+        self.player.set_state(Gst.State.NULL)
+        self._next()
+        if self.player.current_state != Gst.State.PAUSED:
+            self._play()
 
     @dbus.service.method("org.WRMS.player",
                          in_signature='', out_signature='')
     def pause(self):
+        logging.info("pause cmd recieved")
+        self.last_action = "paused"
         ret = self.player.set_state(Gst.State.PAUSED)
         logging.info(str(ret))
         logging.info("player paused")
@@ -124,6 +136,7 @@ class Player(dbus.service.Object):
     @dbus.service.method("org.WRMS.player",
                          in_signature='', out_signature='')
     def quit(self):
+        self.last_action = "player terminated"
         self.player.set_state(Gst.State.NULL)
         logging.warning("shut down player; exit mainloop")
         self.loop.quit()
@@ -133,7 +146,9 @@ class Player(dbus.service.Object):
     @dbus.service.method("org.WRMS.player",
                          in_signature='s', out_signature='')
     def add_song(self, song):
-        if not self.queue.append(song):
+        if  os.path.isfile(music_dir + '/' + song):
+            self.queue.append(song)
+            self.last_action = "{0} added".format(song)
             logging.info("song added: " +  self.urify(song))
         else:
             logging.warning(song + " can't be loaded: no file associated")
@@ -141,16 +156,18 @@ class Player(dbus.service.Object):
     @dbus.service.method("org.WRMS.player",
                          in_signature='s', out_signature='')
     def upvote_song(self, song):
-        if not self.queue.upvote_song(song):
-            logging.info(str(song) + "upvoted")
+        if self.queue.upvote_song(song) == 0:
+            self.last_action = "{0} upvoted".format(song)
+            logging.info(str(song) + " upvoted")
         else:
             logging.warning("can't upvote " + str(song))
 
     @dbus.service.method("org.WRMS.player",
                          in_signature='s', out_signature='')    
     def downvote_song(self, song):
-        if not self.queue.downvote_song(song):
-            logging.info(str(song) + "downvoted")
+        if self.queue.downvote_song(song) == 0:
+            self.last_action = "{0} downvoted".format(song)
+            logging.info(str(song) + " downvoted")
         else:
             logging.warning("can't downvote " + str(song))
 
@@ -171,6 +188,18 @@ class Player(dbus.service.Object):
                          in_signature='', out_signature='s')
     def get_current_metadata(self):
         return str(self.current_song_taglist.tostring())
+
+    @dbus.service.method("org.WRMS.player",
+                         in_signature='', out_signature='s')
+    def get_last_action(self):
+        return self.last_action
+
+    @dbus.service.method("org.WRMS.player",
+                         in_signature='', out_signature='s')
+    def get_player_status(self):
+        status_strings = {Gst.State.PLAYING: "playing", Gst.State.PAUSED: "paused",
+                Gst.State.READY: "ready", Gst.State.NULL: "uninitialized"}
+        return status_strings[self.player.current_state]
 
 
 if __name__ == "__main__":
