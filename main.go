@@ -30,7 +30,17 @@ func landingPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Searching for")
+	pattern := r.URL.Query().Get("pattern")
+
+	log.Println(fmt.Sprintf("Searching for %s", pattern))
+
+	results := wrms.Player.Search(pattern)
+	data, err := json.Marshal(Event{"search", results})
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	w.Write(data)
 }
 
 func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
@@ -101,7 +111,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	if wrms.Playing {
 		data, err := json.Marshal(Event{"play", []Song{*wrms.CurrentSong}})
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 			return
 		}
 		initialCmds = append(initialCmds, data)
@@ -109,7 +119,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	data, err := json.Marshal(Event{"add", wrms.Songs})
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 		return
 	}
 	initialCmds = append(initialCmds, data)
@@ -126,7 +136,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	for ev := range conn.Events {
 		data, err := json.Marshal(ev)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 			return
 		}
 

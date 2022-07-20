@@ -190,6 +190,13 @@
         console.log("Socket Error: ", error);
       };
 
+      function submitSearch() {
+        const form = new FormData(document.getElementById("searchForm"));
+        const pattern = new URLSearchParams(form).toString();
+        new HttpClient().get("/search?" + pattern, console.log);
+        return false;
+      }
+
       window.onload = function() {
         document.getElementById("ppbutton").addEventListener("click", function() {
           new HttpClient().get("/playpause", console.log);
@@ -199,10 +206,18 @@
   </head>
 
   <body>
+    <h2>Add your song</h2>
+    <div id="add">
+      <form id="searchForm" onsubmit="return submitSearch()">
+        <input id="searchInput" name="pattern" type="text" value="Title/Artist/Album/...">
+        <button id="searchButton">Search</button>
+      </form>
+    </div>
+
     <h2>Playing</h2>
     <p id='playing'></p>
     <div id='controls'>
-      <button id="ppbutton" form='ppform'>Play</button>
+      <button id="ppbutton">Play</button>
     </div>
 
     <h2>Playlist</h2>

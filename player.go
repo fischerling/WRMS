@@ -33,3 +33,11 @@ func (player *Player) Play(song Song) {
 
 func (player *Player) Pause() {
 }
+
+func (player *Player) Search(pattern string) []Song {
+	results := []Song{}
+	for _, backend := range player.Backends {
+		results = append(results, backend.Search(pattern)...)
+	}
+	return results
+}
