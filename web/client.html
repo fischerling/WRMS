@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WRMS</title>
+
+    <style>
+      .vote {
+        display: inline-block;
+        cursor: pointer;
+        color: #687074
+      } 
+
+      .vote.on {
+        color: #f48024
+      }
+    </style>
+
+    <script>
+      /*
+      @licstart  The following is the entire license notice for the 
+      JavaScript code in this page.
+
+      Copyright (C) 2022  Florian Fischer
+
+      The JavaScript code in this page is free software: you can
+      redistribute it and/or modify it under the terms of the GNU
+      General Public License (GNU GPL) as published by the Free Software
+      Foundation, either version 3 of the License, or (at your option)
+      any later version.  The code is distributed WITHOUT ANY WARRANTY;
+      without even the implied warranty of MERCHANTABILITY or FITNESS
+      FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+      As additional permission under GNU GPL version 3 section 7, you
+      may distribute non-source (e.g., minimized or compacted) forms of
+      that code without the copy of the GNU GPL normally required by
+      section 4, provided you include this license notice and a URL
+      through which recipients can access the Corresponding Source.   
+
+
+      @licend  The above is the entire license notice
+      for the JavaScript code in this page.
+      */
+    </script>
+
+    <script>
+      var HttpClient = function() {
+        this.get = function(url, callback) {
+          var request = new XMLHttpRequest();
+          request.onreadystatechange = function() { 
+            if (request.readyState == 4 && request.status == 200)
+              callback(request.responseText);
+          }
+
+          request.open("GET", url, true);            
+          request.send(null);
+        }
+      }
+
+      let songs = [];
+      let playing = {};
+      let votes = new Map();
+
+      function renderPlaylist() {
+        playlist = document.getElementById("playlist");
+        playlist.innerHTML = "";
+
+        songs.sort(function(a, b) {return b.weight - a.weight});
+
+        for (const song of songs) {
+          var listItem = document.createElement("li");
+
+          const btnHTML = "<svg width='36' height='36'><path d='M2 10h32L18 26 2 10z' fill='currentColor'></path></svg>";
+          var upvoteBtn = document.createElement("span");
+          var downvoteBtn = document.createElement("span");
+
+          upvoteBtn.innerHTML = downvoteBtn.innerHTML = btnHTML;
+          upvoteBtn.className = downvoteBtn.className = "vote";
+          upvoteBtn.style.transform = 'rotate(180deg)';
+
+          if (votes.has(song.id)) {
+            if (votes.get(song.id) == "up")
+              upvoteBtn.classList.toggle("on");
+            else
+              downvoteBtn.classList.toggle("on");
+          }
+
+          function onVote(event) {
+            const btn = event.currentTarget;
+            btn.classList.toggle("on");
+            const isUpvoteBtn = btn == upvoteBtn;
+            const isVote = btn.classList.contains("on");
+            var url = "";
+            
+            if (isVote) {
+              if (isUpvoteBtn) {
+                downvoteBtn.classList.remove("on")
+                votes.set(song.id, "up")
+              } else {
+                upvoteBtn.classList.remove("on")
+                votes.set(song.id, "down")
+              }
+
+              url = "/" + (isUpvoteBtn ? "up" : "down") + "?song=" + song.id;
+            } else {
+              votes.delete(song.id);
+              url = "/unvote?song=" + song.id;
+            }
+
+            console.log("Get " + url);
+            new HttpClient().get(url, console.log);
+          }
+          upvoteBtn.addEventListener("click", onVote);
+          downvoteBtn.addEventListener("click", onVote);
+
+          listItem.appendChild(upvoteBtn);
+          listItem.appendChild(downvoteBtn);
+
+          const itemValue = document.createTextNode(song.artist + " - " + song.title);
+          listItem.appendChild(itemValue);
+          playlist.appendChild(listItem);
+        }
+      }
+
+      function handleAdd(added) {
+        songs = songs.concat(added);
+        renderPlaylist();
+      }
+
+      function handleUpdate(updated) {
+        for (const updated_song of updated) {
+          songs[songs.findIndex(function(s) {return s.id == updated_song.id})] = updated_song;
+        }
+        renderPlaylist();
+      }
+
+      function handlePause() {
+        document.getElementById("ppbutton").innerHTML = 'Play';
+      }
+
+      function handlePlay(currentSong) {
+        document.getElementById("ppbutton").innerHTML = 'Pause';
+
+        idx = -1;
+        songs.forEach(function(s, i, a) { if (s.id == currentSong.id) idx = i; });
+        if (idx != -1) {
+          songs.splice(idx, 1);
+          renderPlaylist();
+        }
+
+        const songLabel = document.createTextNode(currentSong.artist + " - " + currentSong.title);
+
+        playing = document.getElementById("playing");
+        playing.innerHTML = "";
+        playing.appendChild(songLabel);
+      }
+
+      let socket = new WebSocket("ws://localhost:8080/ws");
+      console.log("Attempting Connection...");
+
+      socket.onopen = () => {
+        console.log("Successfully Connected");
+      };
+      
+      socket.onclose = event => {
+        console.log("Socket Closed Connection: ", event);
+      };
+
+      socket.onmessage = message => {
+        console.log("Socket Received Message: ", message);
+        const cmd = JSON.parse(message.data);
+        switch (cmd.cmd) {
+          case "add":
+            handleAdd(cmd.songs)
+            break;
+          case "update":
+            handleUpdate(cmd.songs)
+            break;
+          case "pause":
+            handlePause()
+            break;
+          case "play":
+            handlePlay(cmd.songs[0])
+            break;
+        }
+      };
+
+      socket.onerror = error => {
+        console.log("Socket Error: ", error);
+      };
+
+      window.onload = function() {
+        document.getElementById("ppbutton").addEventListener("click", function() {
+          new HttpClient().get("/playpause", console.log);
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <h2>Playing</h2>
+    <p id='playing'></p>
+    <div id='controls'>
+      <button id="ppbutton" form='ppform'>Play</button>
+    </div>
+
+    <h2>Playlist</h2>
+    <ul id='playlist'></ul>
+  </body>
+</html>
