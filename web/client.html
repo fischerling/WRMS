@@ -45,16 +45,26 @@
     </script>
 
     <script>
-      var HttpClient = function() {
-        this.get = function(url, callback) {
-          var request = new XMLHttpRequest();
+      let HttpClient = function() {
+        function newRequest(callback) {
+          let request = new XMLHttpRequest();
           request.onreadystatechange = function() { 
             if (request.readyState == 4 && request.status == 200)
               callback(request.responseText);
           }
+          return request;
+        }
 
+        this.get = function(url, callback) {
+          let request = newRequest(callback);
           request.open("GET", url, true);            
           request.send(null);
+        }
+
+        this.post = function(url, data, callback) {
+          let request = newRequest(callback);
+          request.open("POST", url, true);            
+          request.send(data);
         }
       }
 
@@ -69,18 +79,18 @@
         songs.sort(function(a, b) {return b.weight - a.weight});
 
         for (const song of songs) {
-          var listItem = document.createElement("li");
+          let listItem = document.createElement("li");
 
           const btnHTML = "<svg width='36' height='36'><path d='M2 10h32L18 26 2 10z' fill='currentColor'></path></svg>";
-          var upvoteBtn = document.createElement("span");
-          var downvoteBtn = document.createElement("span");
+          let upvoteBtn = document.createElement("span");
+          let downvoteBtn = document.createElement("span");
 
           upvoteBtn.innerHTML = downvoteBtn.innerHTML = btnHTML;
           upvoteBtn.className = downvoteBtn.className = "vote";
           upvoteBtn.style.transform = 'rotate(180deg)';
 
-          if (votes.has(song.id)) {
-            if (votes.get(song.id) == "up")
+          if (votes.has(song.uri)) {
+            if (votes.get(song.uri) == "up")
               upvoteBtn.classList.toggle("on");
             else
               downvoteBtn.classList.toggle("on");
@@ -91,21 +101,21 @@
             btn.classList.toggle("on");
             const isUpvoteBtn = btn == upvoteBtn;
             const isVote = btn.classList.contains("on");
-            var url = "";
+            let url = "";
             
             if (isVote) {
               if (isUpvoteBtn) {
                 downvoteBtn.classList.remove("on")
-                votes.set(song.id, "up")
+                votes.set(song.uri, "up")
               } else {
                 upvoteBtn.classList.remove("on")
-                votes.set(song.id, "down")
+                votes.set(song.uri, "down")
               }
 
-              url = "/" + (isUpvoteBtn ? "up" : "down") + "?song=" + song.id;
+              url = "/" + (isUpvoteBtn ? "up" : "down") + "?song=" + song.uri;
             } else {
-              votes.delete(song.id);
-              url = "/unvote?song=" + song.id;
+              votes.delete(song.uri);
+              url = "/unvote?song=" + song.uri;
             }
 
             console.log("Get " + url);
@@ -130,7 +140,7 @@
 
       function handleUpdate(updated) {
         for (const updated_song of updated) {
-          songs[songs.findIndex(function(s) {return s.id == updated_song.id})] = updated_song;
+          songs[songs.findIndex(function(s) {return s.uri == updated_song.uri})] = updated_song;
         }
         renderPlaylist();
       }
@@ -143,7 +153,7 @@
         document.getElementById("ppbutton").innerHTML = 'Pause';
 
         idx = -1;
-        songs.forEach(function(s, i, a) { if (s.id == currentSong.id) idx = i; });
+        songs.forEach(function(s, i, a) { if (s.uri == currentSong.uri) idx = i; });
         if (idx != -1) {
           songs.splice(idx, 1);
           renderPlaylist();
@@ -193,13 +203,44 @@
       function submitSearch() {
         const form = new FormData(document.getElementById("searchForm"));
         const pattern = new URLSearchParams(form).toString();
-        new HttpClient().get("/search?" + pattern, console.log);
+        new HttpClient().get("/search?" + pattern, showSearchResults);
         return false;
+      }
+
+      function addSong(song) {
+        new HttpClient().post("/add", JSON.stringify(song), console.log);
+      }
+
+      function showSearchResults(responseText) {
+        response = JSON.parse(responseText)
+        if (!response)
+          return
+
+        let searchResultsOverlay = document.getElementById("searchResultsOverlay");
+
+        let searchResults = document.getElementById("searchResults");
+        // Clear search Results
+        searchResults.innerHTML = "";
+        for (const song of response.songs) {
+          let listItem = document.createElement("li");
+          listItem.addEventListener("click", function() {
+            addSong(song);
+            searchResultsOverlay.style.display = "none";
+          });
+
+          let searchResultLabel = document.createTextNode(song.artist + " - " + song.title); 
+          listItem.appendChild(searchResultLabel);
+
+          searchResults.appendChild(listItem);
+        }
+
+        // Show search result overlay
+        searchResultsOverlay.style.display = "block";
       }
 
       window.onload = function() {
         document.getElementById("ppbutton").addEventListener("click", function() {
-          new HttpClient().get("/playpause", console.log);
+          new HttpClient().get("/playpause", showSearchResults);
         });
       }
     </script>
@@ -212,6 +253,11 @@
         <input id="searchInput" name="pattern" type="text" value="Title/Artist/Album/...">
         <button id="searchButton">Search</button>
       </form>
+    </div>
+
+    <div id="searchResultsOverlay" style="display: none;">
+      <ul id="searchResults">
+      </ul>
     </div>
 
     <h2>Playing</h2>

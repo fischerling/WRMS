@@ -9,6 +9,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	// "github.com/librespot-org/librespot-golang/Spotify"
@@ -64,6 +65,29 @@ func (spotify *SpotifyBackend) Pause() {
 }
 
 func (spotify *SpotifyBackend) Search(keyword string) []Song {
+	session := spotify.session
+	resp, err := session.Mercury().Search(keyword, 12, session.Country(), session.Username())
+
+	if err != nil {
+		fmt.Println("Failed to search:", err)
+		return []Song{}
+	}
+
+	res := resp.Results
+
+	fmt.Println("Search results for ", keyword)
+	fmt.Println("=============================")
+
+	if res.Error != nil {
+		fmt.Println("Search result error:", res.Error)
+	}
+
+	fmt.Printf("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
+
+	for _, track := range res.Tracks.Hits {
+		fmt.Printf(" => %v (%s)\n", track, track.Uri)
+	}
+
 	return []Song{}
 }
 

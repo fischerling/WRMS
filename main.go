@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -40,6 +41,8 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 		return
 	}
+
+	log.Println("Search returned", string(data))
 	w.Write(data)
 }
 
@@ -51,9 +54,9 @@ func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
 	}
 	connId := uuidCookie.Value
 
-	songId := r.URL.Query().Get("song")
-	log.Println("%s song %s via url %s", vote, songId, r.URL)
-	wrms.AdjustSongWeight(connId, songId, vote)
+	songUri := r.URL.Query().Get("song")
+	log.Println("%s song %s via url %s", vote, songUri, r.URL)
+	wrms.AdjustSongWeight(connId, songUri, vote)
 }
 
 func upHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +72,23 @@ func unvoteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Added")
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Failed to read request body", string(data))
+		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+		return
+	}
+
+	song, err := NewSongFromJson(data)
+	if err != nil {
+		http.Error(w, "Could not parse song", http.StatusBadRequest)
+		return
+	}
+
+	log.Println(fmt.Sprintf("Added song %s", string(data)))
+	wrms.AddSong(song)
+	wrms.Broadcast(Event{"add", []Song{song}})
+	fmt.Fprintf(w, "Added song %s", string(data))
 }
 
 func playPauseHandler(w http.ResponseWriter, r *http.Request) {
@@ -163,8 +182,8 @@ func setupRoutes() {
 func main() {
 	setupRoutes()
 
-	wrms.AddSong(NewSong("Lala", "SNFMT", "local"))
-	wrms.AddSong(NewSong("Hobelbank", "MC Wankwichtel", "local"))
+	wrms.AddSong(NewDummySong("Lala", "SNFMT"))
+	wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
 	log.Println(wrms)
 	defer wrms.Close()

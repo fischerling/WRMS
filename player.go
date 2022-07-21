@@ -24,6 +24,8 @@ func NewPlayer() Player {
 	}
 	available_backends["spotify"] = spotify
 
+	available_backends["dummy"] = &DummyBackend{}
+
 	return Player{available_backends}
 }
 

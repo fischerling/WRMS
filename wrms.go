@@ -1,8 +1,7 @@
 package main
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -15,21 +14,24 @@ type Song struct {
 	Title     string              `json:"title"`
 	Artist    string              `json:"artist"`
 	Source    string              `json:"source"`
-	Id        string              `json:"id"`
+	Uri       string              `json:"uri"`
 	Weight    int                 `json:"weight"`
 	index     int                 `json:"-"` // used by heap.Interface
 	Upvotes   map[string]struct{} `json:"-"`
 	Downvotes map[string]struct{} `json:"-"`
 }
 
-func NewSong(title string, artist string, source string) Song {
-	s := Song{title, artist, source, "", 0, 0, map[string]struct{}{}, map[string]struct{}{}}
-	h := sha1.New()
-	h.Write([]byte(title))
-	h.Write([]byte(artist))
-	h.Write([]byte(source))
-	s.Id = base64.URLEncoding.EncodeToString(h.Sum(nil))
-	return s
+func NewSongFromJson(data []byte) (Song, error) {
+	var s Song
+	err := json.Unmarshal(data, &s)
+	if err != nil {
+		log.Println(fmt.Sprintf("Failed to parse song data %s with %s", string(data), err))
+		return s, err
+	}
+
+	s.Upvotes = map[string]struct{}{}
+	s.Downvotes = map[string]struct{}{}
+	return s, nil
 }
 
 type Event struct {
@@ -79,15 +81,17 @@ func (wrms *Wrms) Broadcast(cmd Event) {
 
 func (wrms *Wrms) AddSong(song Song) {
 	wrms.Songs = append(wrms.Songs, song)
-	wrms.Queue.Add(&wrms.Songs[len(wrms.Songs) - 1])
+	s := &wrms.Songs[len(wrms.Songs)-1]
+	wrms.Queue.Add(s)
+	log.Println(fmt.Sprintf("Added song %s (ptr=%p) to Songs", s.Uri, s))
 }
 
 func (wrms *Wrms) Next() {
 	wrms.CurrentSong = wrms.Queue.PopSong()
 	for i, s := range wrms.Songs {
-		if s.Id == wrms.CurrentSong.Id {
-			wrms.Songs[i] = wrms.Songs[len(wrms.Songs) - 1]
-			wrms.Songs = wrms.Songs[:len(wrms.Songs) - 1]
+		if s.Uri == wrms.CurrentSong.Uri {
+			wrms.Songs[i] = wrms.Songs[len(wrms.Songs)-1]
+			wrms.Songs = wrms.Songs[:len(wrms.Songs)-1]
 			break
 		}
 	}
@@ -109,17 +113,18 @@ func (wrms *Wrms) PlayPause() {
 	wrms.Broadcast(ev)
 }
 
-func (wrms *Wrms) AdjustSongWeight(connId string, songId string, vote string) {
+func (wrms *Wrms) AdjustSongWeight(connId string, songUri string, vote string) {
 	for i := 0; i < len(wrms.Songs); i++ {
 		s := &wrms.Songs[i]
-		if s.Id != songId {
+		if s.Uri != songUri {
 			continue
 		}
 
+		log.Println(fmt.Sprintf("Adjusting song %s (ptr=%p)", s.Uri, s))
 		switch vote {
 		case "up":
 			if _, ok := s.Upvotes[connId]; ok {
-				log.Println(fmt.Sprintf("Double upvote of song %s by connections %s", songId, connId))
+				log.Println(fmt.Sprintf("Double upvote of song %s by connections %s", songUri, connId))
 				return
 			}
 
@@ -134,7 +139,7 @@ func (wrms *Wrms) AdjustSongWeight(connId string, songId string, vote string) {
 
 		case "down":
 			if _, ok := s.Downvotes[connId]; ok {
-				log.Println(fmt.Sprintf("Double downvote of song %s by connections %s", songId, connId))
+				log.Println(fmt.Sprintf("Double downvote of song %s by connections %s", songUri, connId))
 				return
 			}
 
@@ -157,7 +162,7 @@ func (wrms *Wrms) AdjustSongWeight(connId string, songId string, vote string) {
 				delete(s.Upvotes, connId)
 				s.Weight -= 1
 			} else {
-				log.Println(fmt.Sprintf("Double downvote of song %s by connections %s", songId, connId))
+				log.Println(fmt.Sprintf("Double downvote of song %s by connections %s", songUri, connId))
 				return
 			}
 
