@@ -7,7 +7,7 @@ import (
 
 type DummyBackend struct{}
 
-func (dummy *DummyBackend) Play(song Song) {
+func (dummy *DummyBackend) Play(song *Song) {
 }
 
 func (dummy *DummyBackend) Pause() {
@@ -19,11 +19,9 @@ func (dummy *DummyBackend) Search(keyword string) []Song {
 	return []Song{s}
 }
 
-func NewDummySong(title string, artist string) Song {
-	s := Song{title, artist, "dummy", "", 0, 0, map[string]struct{}{}, map[string]struct{}{}}
+func NewDummySong(title, artist string) Song {
 	h := sha1.New()
 	h.Write([]byte(title))
 	h.Write([]byte(artist))
-	s.Uri = base64.URLEncoding.EncodeToString(h.Sum(nil))
-	return s
+	return NewSong(title, artist, "dummy", base64.URLEncoding.EncodeToString(h.Sum(nil)))
 }

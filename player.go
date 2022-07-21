@@ -5,7 +5,7 @@ import (
 )
 
 type Backend interface {
-	Play(song Song)
+	Play(song *Song)
 	Pause()
 	Search(keyword string) []Song
 }
@@ -29,7 +29,7 @@ func NewPlayer() Player {
 	return Player{available_backends}
 }
 
-func (player *Player) Play(song Song) {
+func (player *Player) Play(song *Song) {
 	player.Backends[song.Source].Play(song)
 }
 

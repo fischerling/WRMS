@@ -21,6 +21,10 @@ type Song struct {
 	Downvotes map[string]struct{} `json:"-"`
 }
 
+func NewSong(title, artist, source, uri string) Song {
+	return Song{title, artist, source, uri, 0, 0, map[string]struct{}{}, map[string]struct{}{}}
+}
+
 func NewSongFromJson(data []byte) (Song, error) {
 	var s Song
 	err := json.Unmarshal(data, &s)
@@ -104,6 +108,7 @@ func (wrms *Wrms) PlayPause() {
 			wrms.Next()
 		}
 		ev = Event{"play", []Song{*wrms.CurrentSong}}
+		wrms.Player.Play(wrms.CurrentSong)
 	} else {
 		ev = Event{"pause", []Song{}}
 	}
