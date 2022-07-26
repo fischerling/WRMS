@@ -15,6 +15,10 @@
       .vote.on {
         color: #f48024
       }
+
+      .searchResult:hover {
+        background-color: #999;
+      }
     </style>
 
     <script>
@@ -228,6 +232,8 @@
             searchResultsOverlay.style.display = "none";
           });
 
+          listItem.classList.add("searchResult")
+
           let searchResultLabel = document.createTextNode(song.artist + " - " + song.title); 
           listItem.appendChild(searchResultLabel);
 
@@ -240,7 +246,7 @@
 
       window.onload = function() {
         document.getElementById("ppbutton").addEventListener("click", function() {
-          new HttpClient().get("/playpause", showSearchResults);
+          new HttpClient().get("/playpause", console.log);
         });
       }
     </script>

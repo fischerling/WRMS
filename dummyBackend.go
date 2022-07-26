@@ -7,10 +7,7 @@ import (
 
 type DummyBackend struct{}
 
-func (dummy *DummyBackend) Play(song *Song) {
-}
-
-func (dummy *DummyBackend) Pause() {
+func (dummy *DummyBackend) Play(song *Song, player *Player) {
 }
 
 func (dummy *DummyBackend) Search(keyword string) []Song {

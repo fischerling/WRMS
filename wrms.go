@@ -59,14 +59,14 @@ type Wrms struct {
 	Connections []Connection
 	Songs       []Song
 	Queue       Playlist
-	CurrentSong *Song
+	CurrentSong Song
 	Player      Player
 	Playing     bool
 }
 
 func NewWrms() Wrms {
 	wrms := Wrms{}
-	wrms.Player = NewPlayer()
+	wrms.Player = NewPlayer(&wrms)
 	return wrms
 }
 
@@ -91,7 +91,7 @@ func (wrms *Wrms) AddSong(song Song) {
 }
 
 func (wrms *Wrms) Next() {
-	wrms.CurrentSong = wrms.Queue.PopSong()
+	wrms.CurrentSong = *wrms.Queue.PopSong()
 	for i, s := range wrms.Songs {
 		if s.Uri == wrms.CurrentSong.Uri {
 			wrms.Songs[i] = wrms.Songs[len(wrms.Songs)-1]
@@ -104,13 +104,15 @@ func (wrms *Wrms) Next() {
 func (wrms *Wrms) PlayPause() {
 	var ev Event
 	if !wrms.Playing {
-		if wrms.CurrentSong == nil {
+		if wrms.CurrentSong.Uri == "" {
+			log.Println("No song currently playing play the next")
 			wrms.Next()
 		}
-		ev = Event{"play", []Song{*wrms.CurrentSong}}
-		wrms.Player.Play(wrms.CurrentSong)
+		ev = Event{"play", []Song{wrms.CurrentSong}}
+		wrms.Player.Play(&wrms.CurrentSong)
 	} else {
 		ev = Event{"pause", []Song{}}
+		wrms.Player.Pause()
 	}
 
 	wrms.Playing = !wrms.Playing

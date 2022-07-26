@@ -55,7 +55,7 @@ func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
 	connId := uuidCookie.Value
 
 	songUri := r.URL.Query().Get("song")
-	log.Println("%s song %s via url %s", vote, songUri, r.URL)
+	log.Println(fmt.Sprintf("%s song %s via url %s", vote, songUri, r.URL))
 	wrms.AdjustSongWeight(connId, songUri, vote)
 }
 
@@ -85,7 +85,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(fmt.Sprintf("Added song %s", string(data)))
+	log.Println("Added song", string(data))
 	wrms.AddSong(song)
 	wrms.Broadcast(Event{"add", []Song{song}})
 	fmt.Fprintf(w, "Added song %s", string(data))
@@ -128,7 +128,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	initialCmds := [][]byte{}
 	if wrms.Playing {
-		data, err := json.Marshal(Event{"play", []Song{*wrms.CurrentSong}})
+		data, err := json.Marshal(Event{"play", []Song{wrms.CurrentSong}})
 		if err != nil {
 			log.Fatal(err)
 			return

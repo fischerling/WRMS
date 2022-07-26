@@ -9,29 +9,19 @@ package main
 
 import (
 	"errors"
-	"log"
 	"fmt"
+	"log"
 	"os"
 	"strings"
-	"sync"
-	"unsafe"
 
 	"github.com/librespot-org/librespot-golang/Spotify"
 	"github.com/librespot-org/librespot-golang/librespot"
 	"github.com/librespot-org/librespot-golang/librespot/core"
 	"github.com/librespot-org/librespot-golang/librespot/utils"
-	"github.com/xlab/portaudio-go/portaudio"
-	"github.com/xlab/vorbis-go/decoder"
 )
 
 const (
 	deviceName = "wrms"
-	// The number of samples per channel in the decoded audio
-	samplesPerChannel = 2048
-	// The samples bit depth
-	bitDepth = 16
-	// The samples format
-	sampleFormat = portaudio.PaFloat32
 )
 
 type SpotifyBackend struct {
@@ -40,10 +30,6 @@ type SpotifyBackend struct {
 
 func NewSpotify() (*SpotifyBackend, error) {
 	spotify := SpotifyBackend{}
-
-	if err := portaudio.Initialize(); paError(err) {
-		return nil, errors.New(paErrorText(err))
-	}
 
 	var err error
 
@@ -62,8 +48,8 @@ func NewSpotify() (*SpotifyBackend, error) {
 	return &spotify, nil
 }
 
-func (spotify *SpotifyBackend) Play(song *Song) {
-  trackID := song.Uri
+func (spotify *SpotifyBackend) Play(song *Song, player *Player) {
+	trackID := song.Uri
 	session := spotify.session
 	fmt.Println("Loading track for play: ", trackID)
 
@@ -76,8 +62,8 @@ func (spotify *SpotifyBackend) Play(song *Song) {
 
 	fmt.Println("Track:", track.GetName())
 
-	// As a demo, select the OGG 160kbps variant of the track. The "high quality" setting in the official Spotify
-	// app is the OGG 320kbps variant.
+	// For now, select the OGG 160kbps variant of the track. The "high quality"
+	// setting in the official Spotify app is the OGG 320kbps variant.
 	var selectedFile *Spotify.AudioFile
 	for _, file := range track.GetFile() {
 		if file.GetFormat() == Spotify.AudioFile_OGG_VORBIS_160 {
@@ -87,50 +73,11 @@ func (spotify *SpotifyBackend) Play(song *Song) {
 
 	// Synchronously load the track
 	audioFile, err := session.Player().LoadTrack(selectedFile, track.GetGid())
-
-	// TODO: channel to be notified of chunks downloaded (or reader?)
-
 	if err != nil {
-		fmt.Printf("Error while loading track: %s\n", err)
-	} else {
-		// We have the track audio, let's play it! Initialize the OGG decoder, and start a PortAudio stream.
-		// Note that we skip the first 167 bytes as it is a Spotify-specific header. You can decode it by
-		// using this: https://sourceforge.net/p/despotify/code/HEAD/tree/java/trunk/src/main/java/se/despotify/client/player/SpotifyOggHeader.java
-		fmt.Println("Setting up OGG decoder...")
-		dec, err := decoder.New(audioFile, samplesPerChannel)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		info := dec.Info()
-
-		go func() {
-			dec.Decode()
-			dec.Close()
-		}()
-
-		fmt.Println("Setting up PortAudio stream...")
-		fmt.Printf("PortAudio channels: %d / SampleRate: %f\n", info.Channels, info.SampleRate)
-
-		var wg sync.WaitGroup
-		var stream *portaudio.Stream
-		callback := paCallback(&wg, int(info.Channels), dec.SamplesOut())
-
-		if err := portaudio.OpenDefaultStream(&stream, 0, info.Channels, sampleFormat, info.SampleRate,
-			samplesPerChannel, callback, nil); paError(err) {
-			log.Fatalln(paErrorText(err))
-		}
-
-		fmt.Println("Starting playback...")
-		if err := portaudio.StartStream(stream); paError(err) {
-			log.Fatalln(paErrorText(err))
-		}
-
-		wg.Wait()
+		log.Fatal(fmt.Sprintf("Error while loading track: %s\n", err))
 	}
-}
 
-func (spotify *SpotifyBackend) Pause() {
+	player.PlayData(audioFile)
 }
 
 func (spotify *SpotifyBackend) Search(keyword string) []Song {
@@ -156,53 +103,9 @@ func (spotify *SpotifyBackend) Search(keyword string) []Song {
 	results := []Song{}
 	for _, track := range res.Tracks.Hits {
 		uriParts := strings.Split(track.Uri, ":")
-		results = append(results, NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts) - 1]))
+		results = append(results, NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts)-1]))
 		// fmt.Printf(" => %v (%s)\n", track, track.Uri)
 	}
 
 	return results
-}
-
-// PortAudio helpers
-func paError(err portaudio.Error) bool {
-	return portaudio.ErrorCode(err) != portaudio.PaNoError
-}
-
-func paErrorText(err portaudio.Error) string {
-	return "PortAudio error: " + portaudio.GetErrorText(err)
-}
-
-func paCallback(wg *sync.WaitGroup, channels int, samples <-chan [][]float32) portaudio.StreamCallback {
-	wg.Add(1)
-	return func(_ unsafe.Pointer, output unsafe.Pointer, sampleCount uint,
-		_ *portaudio.StreamCallbackTimeInfo, _ portaudio.StreamCallbackFlags, _ unsafe.Pointer) int32 {
-
-		const (
-			statusContinue = int32(portaudio.PaContinue)
-			statusComplete = int32(portaudio.PaComplete)
-		)
-
-		frame, ok := <-samples
-		if !ok {
-			wg.Done()
-			return statusComplete
-		}
-		if len(frame) > int(sampleCount) {
-			frame = frame[:sampleCount]
-		}
-
-		var idx int
-		out := (*(*[1 << 32]float32)(unsafe.Pointer(output)))[:int(sampleCount)*channels]
-		for _, sample := range frame {
-			if len(sample) > channels {
-				sample = sample[:channels]
-			}
-			for i := range sample {
-				out[idx] = sample[i]
-				idx++
-			}
-		}
-
-		return statusContinue
-	}
 }
