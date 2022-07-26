@@ -91,7 +91,14 @@ func (wrms *Wrms) AddSong(song Song) {
 }
 
 func (wrms *Wrms) Next() {
-	wrms.CurrentSong = *wrms.Queue.PopSong()
+	next := wrms.Queue.PopSong()
+	if next == nil {
+		wrms.CurrentSong.Uri = ""
+		return
+	}
+
+	wrms.CurrentSong = *next
+
 	for i, s := range wrms.Songs {
 		if s.Uri == wrms.CurrentSong.Uri {
 			wrms.Songs[i] = wrms.Songs[len(wrms.Songs)-1]

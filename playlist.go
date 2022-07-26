@@ -36,6 +36,9 @@ func (pl *Playlist) Pop() any {
 }
 
 func (pl *Playlist) PopSong() *Song {
+	if len(*pl) == 0 {
+		return nil
+	}
 	return heap.Pop(pl).(*Song)
 }
 

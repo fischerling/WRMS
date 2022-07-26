@@ -28,6 +28,7 @@ func NewPlayer(wrms *Wrms) Player {
 		log.Println("Error during initialization of the spotify backend:", err.Error())
 	}
 	available_backends["spotify"] = spotify
+	available_backends["youtube"] = &YoutubeBackend{}
 
 	available_backends["dummy"] = &DummyBackend{}
 
@@ -45,19 +46,20 @@ func (player *Player) Play(song *Song) {
 }
 
 func (player *Player) runMpv() {
-	out, err := player.mpv.CombinedOutput()
+	_, err := player.mpv.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("mpv finished with", out, "resetting mpv, the current song and call play")
+	log.Println("mpv finished. Resetting mpv, the current song and call play")
 	player.mpv = nil
 	player.wrms.CurrentSong.Uri = ""
 	player.wrms.PlayPause()
 }
 
 func (player *Player) PlayUri(uri string) {
-	player.mpv = exec.Command("mpv", uri)
+	log.Println("Start mpv with ", uri)
+	player.mpv = exec.Command("mpv", "--no-video", uri)
 	go player.runMpv()
 }
 

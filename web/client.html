@@ -76,6 +76,12 @@
       let playing = {};
       let votes = new Map();
 
+      function formatSong(song) {
+        if (song.artist)
+          return song.artist + ' - ' + song.title
+        return song.title
+      }
+
       function renderPlaylist() {
         playlist = document.getElementById("playlist");
         playlist.innerHTML = "";
@@ -131,7 +137,7 @@
           listItem.appendChild(upvoteBtn);
           listItem.appendChild(downvoteBtn);
 
-          const itemValue = document.createTextNode(song.artist + " - " + song.title);
+          const itemValue = document.createTextNode(formatSong(song));
           listItem.appendChild(itemValue);
           playlist.appendChild(listItem);
         }
@@ -163,7 +169,7 @@
           renderPlaylist();
         }
 
-        const songLabel = document.createTextNode(currentSong.artist + " - " + currentSong.title);
+        const songLabel = document.createTextNode(formatSong(currentSong));
 
         playing = document.getElementById("playing");
         playing.innerHTML = "";
@@ -234,7 +240,7 @@
 
           listItem.classList.add("searchResult")
 
-          let searchResultLabel = document.createTextNode(song.artist + " - " + song.title); 
+          let searchResultLabel = document.createTextNode(formatSong(song)); 
           listItem.appendChild(searchResultLabel);
 
           searchResults.appendChild(listItem);
