@@ -77,9 +77,10 @@
       let votes = new Map();
 
       function formatSong(song) {
+        let s = song.weight + ' ' 
         if (song.artist)
-          return song.artist + ' - ' + song.title
-        return song.title
+          return s + song.artist + ' - ' + song.title
+        return s + song.title
       }
 
       function renderPlaylist() {
@@ -148,6 +149,13 @@
         renderPlaylist();
       }
 
+      function handleVotes(direction, votedSongs) {
+        for (const song of votedSongs) {
+          votes.set(song.uri, direction)
+        }
+        renderPlaylist();
+      }
+
       function handleUpdate(updated) {
         for (const updated_song of updated) {
           songs[songs.findIndex(function(s) {return s.uri == updated_song.uri})] = updated_song;
@@ -202,6 +210,12 @@
             break;
           case "play":
             handlePlay(cmd.songs[0])
+            break;
+          case "upvoted":
+            handleVotes("up", cmd.songs)
+            break;
+          case "downvoted":
+            handleVotes("down", cmd.songs)
             break;
         }
       };

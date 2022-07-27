@@ -42,6 +42,7 @@ func (player *Player) Play(song *Song) {
 		return
 	}
 
+	log.Println("Start playing", song)
 	player.Backends[song.Source].Play(song, player)
 }
 

@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 
+	"muhq.space/wrms/llog"
+
 	"github.com/google/uuid"
 
 	"nhooyr.io/websocket"
@@ -98,7 +100,7 @@ func playPauseHandler(w http.ResponseWriter, r *http.Request) {
 func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		log.Println("%v", err)
+		log.Println(err)
 		return
 	}
 
@@ -136,12 +138,42 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		initialCmds = append(initialCmds, data)
 	}
 
-	data, err := json.Marshal(Event{"add", wrms.Songs})
-	if err != nil {
-		log.Fatal(err)
-		return
+	upvoted := []Song{}
+	downvoted := []Song{}
+	if len(wrms.Songs) > 0 {
+		data, err := json.Marshal(Event{"add", wrms.Songs})
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		initialCmds = append(initialCmds, data)
+
+		for _, song := range wrms.Songs {
+			if _, ok := song.Upvotes[id.String()]; ok {
+				upvoted = append(upvoted, song)
+			} else if _, ok := song.Downvotes[id.String()]; ok {
+				downvoted = append(downvoted, song)
+			}
+		}
 	}
-	initialCmds = append(initialCmds, data)
+
+	if len(upvoted) > 0 {
+		data, err := json.Marshal(Event{"upvoted", upvoted})
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		initialCmds = append(initialCmds, data)
+	}
+
+	if len(downvoted) > 0 {
+		data, err := json.Marshal(Event{"downvoted", downvoted})
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		initialCmds = append(initialCmds, data)
+	}
 
 	for _, data := range initialCmds {
 		log.Println("Sending initial cmd", string(data))
@@ -159,7 +191,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Println(fmt.Sprintf("Sending ev %s to %s", string(data), id))
+		llog.Debug(fmt.Sprintf("Sending ev %s to %s", string(data), id))
 		err = c.Write(ctx, websocket.MessageText, data)
 		if err != nil {
 			log.Println(err)
@@ -182,8 +214,8 @@ func setupRoutes() {
 func main() {
 	setupRoutes()
 
-	wrms.AddSong(NewDummySong("Lala", "SNFMT"))
-	wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
+	// wrms.AddSong(NewDummySong("Lala", "SNFMT"))
+	// wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
 	log.Println(wrms)
 	defer wrms.Close()
