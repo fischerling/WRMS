@@ -121,6 +121,7 @@ func (wrms *Wrms) PlayPause() {
 			wrms.Next()
 			if wrms.CurrentSong.Uri == "" {
 				llog.Info("No song left to play")
+				wrms.Broadcast(Event{"stop", []Song{}})
 				return
 			}
 		}

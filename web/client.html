@@ -166,6 +166,11 @@
         document.getElementById("ppbutton").innerHTML = 'Play';
       }
 
+      function handleStop() {
+        document.getElementById("ppbutton").innerHTML = 'Play';
+        playing = document.getElementById("playing").innerHTML = "";
+      }
+
       function handlePlay(currentSong) {
         document.getElementById("ppbutton").innerHTML = 'Pause';
 
