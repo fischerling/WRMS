@@ -77,10 +77,9 @@
       let votes = new Map();
 
       function formatSong(song) {
-        let s = song.weight + ' ' 
         if (song.artist)
-          return s + song.artist + ' - ' + song.title
-        return s + song.title
+          return song.artist + ' - ' + song.title
+        return song.title
       }
 
       function renderPlaylist() {
@@ -138,7 +137,7 @@
           listItem.appendChild(upvoteBtn);
           listItem.appendChild(downvoteBtn);
 
-          const itemValue = document.createTextNode(formatSong(song));
+          const itemValue = document.createTextNode(song.weight + ' ' + formatSong(song));
           listItem.appendChild(itemValue);
           playlist.appendChild(listItem);
         }
