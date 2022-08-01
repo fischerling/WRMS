@@ -59,16 +59,16 @@ func (c *Connection) Close() {
 type Wrms struct {
 	Connections []Connection
 	Songs       []Song
-	Queue       Playlist
+	queue       Playlist
 	CurrentSong Song
 	Player      Player
 	Playing     bool
 }
 
-func NewWrms() Wrms {
+func NewWrms() *Wrms {
 	wrms := Wrms{}
 	wrms.Player = NewPlayer(&wrms)
-	return wrms
+	return &wrms
 }
 
 func (wrms *Wrms) Close() {
@@ -79,7 +79,7 @@ func (wrms *Wrms) Close() {
 }
 
 func (wrms *Wrms) Broadcast(cmd Event) {
-	llog.Info(fmt.Sprintf("Broadcasting %v"))
+	llog.Info(fmt.Sprintf("Broadcasting %v", cmd))
 	for i := 0; i < len(wrms.Connections); i++ {
 		wrms.Connections[i].Events <- cmd
 	}
@@ -88,12 +88,12 @@ func (wrms *Wrms) Broadcast(cmd Event) {
 func (wrms *Wrms) AddSong(song Song) {
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
-	wrms.Queue.Add(s)
+	wrms.queue.Add(s)
 	llog.Info(fmt.Sprintf("Added song %s (ptr=%p) to Songs", s.Uri, s))
 }
 
 func (wrms *Wrms) Next() {
-	next := wrms.Queue.PopSong()
+	next := wrms.queue.PopSong()
 	if next == nil {
 		wrms.CurrentSong.Uri = ""
 		return
@@ -193,7 +193,7 @@ func (wrms *Wrms) AdjustSongWeight(connId string, songUri string, vote string) {
 			llog.Fatal("invalid vote")
 		}
 
-		wrms.Queue.Adjust(s)
+		wrms.queue.Adjust(s)
 		wrms.Broadcast(Event{"update", []Song{*s}})
 		break
 	}
