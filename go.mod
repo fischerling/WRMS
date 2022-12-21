@@ -1,4 +1,4 @@
-module muhq.space/wrms
+module muhq.space/go/wrms
 
 go 1.18
 
