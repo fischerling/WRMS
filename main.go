@@ -3,20 +3,21 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 
-	"muhq.space/wrms/llog"
+	"muhq.space/go/wrms/llog"
 
 	"github.com/google/uuid"
 
 	"nhooyr.io/websocket"
 )
 
-var wrms = NewWrms()
+var wrms *Wrms
 
 func landingPage(w http.ResponseWriter, r *http.Request) {
 	if _, err := r.Cookie("UUID"); err != nil {
@@ -212,12 +213,21 @@ func setupRoutes() {
 }
 
 func main() {
+	config := Config{}
+	flag.IntVar(&config.port, "port", 8080, "port to listen to")
+	flag.StringVar(&config.backends, "backends", "dummy youtube spotify", "music backend to use")
+	flag.StringVar(&config.localMusicDir, "serve-music-dir", "", "local music directory to serve")
+	flag.Parse()
+
+	wrms = NewWrms(config)
+	defer wrms.Close()
+
 	setupRoutes()
 
 	// wrms.AddSong(NewDummySong("Lala", "SNFMT"))
 	// wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
 	log.Println(wrms)
-	defer wrms.Close()
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.port), nil))
 }

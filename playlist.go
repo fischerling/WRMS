@@ -3,7 +3,7 @@ package main
 import (
 	"container/heap"
 	"fmt"
-	"muhq.space/wrms/llog"
+	"muhq.space/go/wrms/llog"
 )
 
 type Playlist []*Song

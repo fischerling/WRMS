@@ -5,6 +5,11 @@ import (
 	"encoding/base64"
 )
 
+type Backend interface {
+	Play(song *Song, player *Player)
+	Search(keyword string) []Song
+}
+
 type DummyBackend struct{}
 
 func (dummy *DummyBackend) Play(song *Song, player *Player) {

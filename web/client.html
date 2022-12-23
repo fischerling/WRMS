@@ -122,10 +122,10 @@
                 votes.set(song.uri, "down")
               }
 
-              url = "/" + (isUpvoteBtn ? "up" : "down") + "?song=" + song.uri;
+              url = "/" + (isUpvoteBtn ? "up" : "down") + "?song=" + encodeURIComponent(song.uri);
             } else {
               votes.delete(song.uri);
-              url = "/unvote?song=" + song.uri;
+              url = "/unvote?song=" + encodeURIComponent(song.uri);
             }
 
             console.log("Get " + url);
@@ -137,8 +137,10 @@
           listItem.appendChild(upvoteBtn);
           listItem.appendChild(downvoteBtn);
 
-          const itemValue = document.createTextNode(song.weight + ' ' + formatSong(song));
-          listItem.appendChild(itemValue);
+          listItem.appendChild(document.createTextNode(song.weight + ' ' + formatSong(song)));
+          const sourceLabel = document.createElement("SMALL");
+          sourceLabel.innerHTML = " (" + song.source + ")";
+          listItem.appendChild(sourceLabel);
           playlist.appendChild(listItem);
         }
       }
@@ -257,10 +259,7 @@
           });
 
           listItem.classList.add("searchResult")
-
-          let searchResultLabel = document.createTextNode(formatSong(song)); 
-          listItem.appendChild(searchResultLabel);
-
+          listItem.innerHTML = formatSong(song) + " <small>(" + song.source + ")</small>";
           searchResults.appendChild(listItem);
         }
 

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/AnjanaMadu/YTSearch"
-	"log"
+	"muhq.space/go/wrms/llog"
 )
 
 type YoutubeBackend struct{}
@@ -15,7 +15,7 @@ func (youtube *YoutubeBackend) Play(song *Song, player *Player) {
 func (youtube *YoutubeBackend) Search(pattern string) []Song {
 	results, err := ytsearch.Search(pattern)
 	if err != nil {
-		log.Fatal("Youtube search failed with", err)
+		llog.Error(fmt.Sprintf("Youtube search failed with", err))
 	}
 
 	songs := []Song{}
@@ -31,6 +31,6 @@ func (youtube *YoutubeBackend) Search(pattern string) []Song {
 		songs = append(songs, NewSong(result.Title, "", "youtube", result.VideoId))
 	}
 
-	log.Println(fmt.Sprintf("youtube found %d matching videos", len(songs)))
+	llog.Debug(fmt.Sprintf("youtube found %d matching videos", len(songs)))
 	return songs
 }

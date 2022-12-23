@@ -1,0 +1,14 @@
+## Fronted
+
+## Web Backend
+
+- [ ] Implement a event endpoint
+
+## Backends
+
+- [X] Implement local storage backend
+- [ ] Fix youtube search
+
+## Configuration
+- [ ] Implement command line flags
+- [ ] Implement config file support

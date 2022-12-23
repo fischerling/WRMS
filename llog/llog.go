@@ -16,7 +16,7 @@ const (
 	l_DDebug
 )
 
-var Level LogLevel = l_Warning
+var Level LogLevel = l_DDebug
 
 func getLevelNames() []string {
 	return []string{"Fatal", "Error", "Warning", "Info", "Debug", "DDebug"}

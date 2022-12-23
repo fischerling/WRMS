@@ -6,13 +6,8 @@ import (
 	"os/exec"
 	"syscall"
 
-	"muhq.space/wrms/llog"
+	"muhq.space/go/wrms/llog"
 )
-
-type Backend interface {
-	Play(song *Song, player *Player)
-	Search(keyword string) []Song
-}
 
 type Player struct {
 	Backends map[string]Backend
@@ -20,18 +15,31 @@ type Player struct {
 	wrms     *Wrms
 }
 
-func NewPlayer(wrms *Wrms) Player {
+func NewPlayer(wrms *Wrms, backends []string) Player {
 	available_backends := map[string]Backend{}
 
-	spotify, err := NewSpotify()
-	if err != nil {
-		// log.Fatalln("Error during initialization of the spotify backend:", err.Error())
-		llog.Error(fmt.Sprintf("Error during initialization of the spotify backend: %s", err.Error()))
-	}
-	available_backends["spotify"] = spotify
-	available_backends["youtube"] = &YoutubeBackend{}
+	var b Backend
+	var err error
+	for _, backend := range backends {
+		switch backend {
+		case "spotify":
+			b, err = NewSpotify()
+		case "youtube":
+			b = &YoutubeBackend{}
+		case "dummy":
+			b = &DummyBackend{}
+		case "local":
+			b = NewLocalBackend(wrms.Config.localMusicDir)
+		default:
+			llog.Error(fmt.Sprintf("Not supported backend %s", backend))
+		}
 
-	available_backends["dummy"] = &DummyBackend{}
+		if err != nil {
+			llog.Error(fmt.Sprintf("Error during initialization of the %s backend: %s", backend, err.Error()))
+		} else {
+			available_backends[backend] = b
+		}
+	}
 
 	return Player{available_backends, nil, wrms}
 }

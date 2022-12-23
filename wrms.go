@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
-	"muhq.space/wrms/llog"
+	"muhq.space/go/wrms/llog"
 
 	"github.com/google/uuid"
 
@@ -63,11 +64,13 @@ type Wrms struct {
 	CurrentSong Song
 	Player      Player
 	Playing     bool
+	Config      Config
 }
 
-func NewWrms() *Wrms {
+func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
-	wrms.Player = NewPlayer(&wrms)
+	wrms.Config = config
+	wrms.Player = NewPlayer(&wrms, strings.Split(config.backends, " "))
 	return &wrms
 }
 
