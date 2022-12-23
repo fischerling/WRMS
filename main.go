@@ -214,10 +214,13 @@ func setupRoutes() {
 
 func main() {
 	config := Config{}
+	logLevel := flag.String("loglevel", "Warning", "log level")
 	flag.IntVar(&config.port, "port", 8080, "port to listen to")
 	flag.StringVar(&config.backends, "backends", "dummy youtube spotify", "music backend to use")
 	flag.StringVar(&config.localMusicDir, "serve-music-dir", "", "local music directory to serve")
 	flag.Parse()
+
+	llog.SetLogLevelFromString(*logLevel)
 
 	wrms = NewWrms(config)
 	defer wrms.Close()

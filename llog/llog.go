@@ -18,6 +18,16 @@ const (
 
 var Level LogLevel = l_DDebug
 
+func SetLogLevelFromString(level string) {
+	for i, l := range getLevelNames() {
+		if l == level {
+			Level = LogLevel(i)
+			return
+		}
+	}
+	Error(fmt.Sprintf("Invalid log level: %s", level))
+}
+
 func getLevelNames() []string {
 	return []string{"Fatal", "Error", "Warning", "Info", "Debug", "DDebug"}
 }
