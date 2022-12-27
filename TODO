@@ -7,7 +7,7 @@
 ## Backends
 
 - [X] Implement local storage backend
-- [ ] Fix youtube search
+- [X] Fix youtube search
 
 ## Configuration
 - [ ] Implement command line flags

@@ -3,7 +3,6 @@ module muhq.space/go/wrms
 go 1.18
 
 require (
-	github.com/AnjanaMadu/YTSearch v1.0.0
 	github.com/dhowden/tag v0.0.0-20220618230019-adf36e896086
 	github.com/google/uuid v1.3.0
 	github.com/librespot-org/librespot-golang v0.0.0-20220325184705-31669e5a889f
@@ -12,7 +11,6 @@ require (
 
 require (
 	github.com/badfortrains/mdns v0.0.0-20160325001438-447166384f51 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/klauspost/compress v1.15.13 // indirect
 	github.com/miekg/dns v1.1.50 // indirect

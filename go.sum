@@ -1,9 +1,5 @@
-github.com/AnjanaMadu/YTSearch v1.0.0 h1:88ovSXJDVSr/bNQY90CYdpAIDSYtlW2Ik6D8VHRdfFo=
-github.com/AnjanaMadu/YTSearch v1.0.0/go.mod h1:ReflwduZK14df7oUOSuNDqLwox2D2heQknhYbEWQlD8=
 github.com/badfortrains/mdns v0.0.0-20160325001438-447166384f51 h1:b6+GdpGhuzxPETrVLwY77iq0L/BqLpcPRmaLNW+SoRY=
 github.com/badfortrains/mdns v0.0.0-20160325001438-447166384f51/go.mod h1:qHRkxMBkkpAWD2poeBYQt6O5IS4dE6w1Cr4Z8Q3feXI=
-github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=
-github.com/buger/jsonparser v1.1.1/go.mod h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

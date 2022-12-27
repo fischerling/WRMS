@@ -25,7 +25,7 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 		case "spotify":
 			b, err = NewSpotify()
 		case "youtube":
-			b = &YoutubeBackend{}
+			b = NewYoutubeBackend()
 		case "dummy":
 			b = &DummyBackend{}
 		case "local":
