@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"github.com/dhowden/tag"
-	"muhq.space/go/wrms/llog"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/dhowden/tag"
+	"muhq.space/go/wrms/llog"
 )
 
 type LocalBackend struct {
@@ -31,7 +31,7 @@ func (b *LocalBackend) insert(song *Song) {
 }
 
 func (b *LocalBackend) findSongs() {
-	llog.Debug(fmt.Sprintf("Starting song search under: %s", b.musicDir))
+	llog.Debug("Starting song search under: %s", b.musicDir)
 
 	// Insert some Songs
 	song := NewSong("No!", "Bukahara", "local", "Bukahara/Phantasma/01-No!.ogg")
@@ -42,7 +42,7 @@ func (b *LocalBackend) findSongs() {
 
 	err := filepath.Walk(b.musicDir, func(p string, finfo os.FileInfo, err error) error {
 		if err != nil {
-			llog.Warning(fmt.Sprintf("error %v at path %s\n", err, p))
+			llog.Warning("error %v at path %s\n", err, p)
 			return err
 		}
 
@@ -60,13 +60,13 @@ func (b *LocalBackend) findSongs() {
 		f, err := os.Open(p)
 		defer f.Close()
 		if err != nil {
-			llog.Warning(fmt.Sprintf("error %v opening file %s", err, p))
+			llog.Warning("error %v opening file %s", err, p)
 			return err
 		}
 
 		m, err := tag.ReadFrom(f)
 		if err != nil {
-			llog.Warning(fmt.Sprintf("error reading tags from %s: %v", p, err))
+			llog.Warning("error reading tags from %s: %v", p, err)
 			// Contiune walking
 			return nil
 		}
@@ -77,7 +77,7 @@ func (b *LocalBackend) findSongs() {
 	})
 
 	if err != nil {
-		llog.Error(fmt.Sprintf("error walking the path %q: %v", b.musicDir, err))
+		llog.Error("error walking the path %q: %v", b.musicDir, err)
 	}
 }
 
