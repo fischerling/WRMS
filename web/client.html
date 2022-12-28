@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WRMS</title>
 
-    <style>
-    </style>
-
     <script>
       /*
       @licstart  The following is the entire license notice for the
@@ -36,6 +33,8 @@
     </script>
 
     <script>
+      let PLAY_PAUSE;
+
       const HttpClient = function() {
         function newRequest(callback) {
           const request = new XMLHttpRequest();
@@ -152,16 +151,19 @@
       }
 
       function handlePause() {
-        document.getElementById("ppbutton").innerHTML = 'Play';
+        PLAY_PAUSE.classList.remove("pause");
+        PLAY_PAUSE.classList.add("play");
       }
 
       function handleStop() {
-        document.getElementById("ppbutton").innerHTML = 'Play';
+        PLAY_PAUSE.classList.remove("pause");
+        PLAY_PAUSE.classList.add("play");
         playing = document.getElementById("playing").innerHTML = "";
       }
 
       function handlePlay(currentSong) {
-        document.getElementById("ppbutton").innerHTML = 'Pause';
+        PLAY_PAUSE.classList.remove("play");
+        PLAY_PAUSE.classList.add("pause");
 
         let idx = -1;
         songs.forEach(function(song, index) {
@@ -236,56 +238,57 @@
         if (!response)
           return
 
-        const searchResultsOverlay = document.getElementById("searchResultsOverlay");
-
         const searchResults = document.getElementById("searchResults");
+
         // Clear search Results
         searchResults.innerHTML = "";
-        for (const song of response.songs) {
-          const listItem = document.createElement("li");
-          listItem.addEventListener("click", function() {
-            addSong(song);
-            searchResultsOverlay.style.display = "none";
-          });
 
-          listItem.classList.add("searchResult")
-          listItem.innerHTML = formatSong(song) + " <small>(" + song.source + ")</small>";
+        for (const song of response.songs) {
+          const listItem = document.createElement("div");
+          listItem.className = "flex-row";
+
+          listItem.innerHTML = "<button class='icon-button'><img src='static/add.svg' alt='Add'></button>" + formatSong(song) + " <small>(" + song.source + ")</small>";
+          listItem.querySelector("button").addEventListener("click", () => addSong(song));
+
           searchResults.appendChild(listItem);
         }
-
-        // Show search result overlay
-        searchResultsOverlay.style.display = "block";
       }
 
       window.onload = function() {
-        document.getElementById("ppbutton").addEventListener("click", function() {
+        PLAY_PAUSE = document.getElementById("play-pause");
+        PLAY_PAUSE.addEventListener("click", function() {
           new HttpClient().get("/playpause", console.log);
         });
       }
     </script>
+
+    <link rel="stylesheet" href="static/client.css">
   </head>
 
   <body>
-    <h2>Add your song</h2>
-    <div id="add">
-      <form id="searchForm" onsubmit="return submitSearch()">
-        <label><input id="searchInput" name="pattern" type="text" value="Title/Artist/Album/..."></label>
-        <button id="searchButton">Search</button>
-      </form>
-    </div>
+    <div class="flex-column">
+      <h2>Currently Playing</h2>
+      <p id='playing'>Nothing</p>
+      <div id='controls'>
+        <button id="play-pause" class="icon-button play">
+          <img src="static/play.svg" alt="Play">
+          <img src="static/pause.svg" alt="Pause">
+        </button>
+      </div>
 
-    <div id="searchResultsOverlay" style="display: none;">
-      <ul id="searchResults">
-      </ul>
-    </div>
+      <h2>Add your song</h2>
+      <div id="add">
+        <form id="searchForm" onsubmit="return submitSearch()">
+          <label><input id="searchInput" name="pattern" type="text" placeholder="Title/Artist/Album/..."></label>
+          <button id="searchButton">Search</button>
+        </form>
+      </div>
 
-    <h2>Playing</h2>
-    <p id='playing'></p>
-    <div id='controls'>
-      <button id="ppbutton">Play</button>
-    </div>
+      <div id="searchResults" class="flex-column">
+      </div>
 
-    <h2>Playlist</h2>
-    <ul id='playlist'></ul>
+      <h2>Playlist</h2>
+      <ul id='playlist'></ul>
+    </div>
   </body>
 </html>

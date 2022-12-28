@@ -209,6 +209,7 @@ func setupRoutes() {
 	http.HandleFunc("/add", addHandler)
 	http.HandleFunc("/playpause", playPauseHandler)
 	http.HandleFunc("/ws", wsEndpoint)
+	http.Handle("/static/", http.FileServer(http.Dir("./web")))
 }
 
 func main() {
