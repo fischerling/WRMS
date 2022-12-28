@@ -21,7 +21,7 @@ var Level LogLevel = l_DDebug
 func SetLogLevelFromString(level string) {
 	for i, l := range getLevelNames() {
 		if l == level {
-			Level = LogLevel(i)
+			Level = LogLevel(i + 1)
 			return
 		}
 	}
