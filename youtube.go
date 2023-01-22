@@ -27,11 +27,11 @@ type YoutubeDlSearchResult struct {
 
 func (b *YoutubeBackend) Search(pattern string) []Song {
 	searchOption := fmt.Sprintf("ytsearch%d:%s", b.searchResults, pattern)
-	llog.Debug(fmt.Sprintf("Search youtube using: youtube-dl -j %s", searchOption))
+	llog.Debug("Search youtube using: youtube-dl -j %s", searchOption)
 	results, err := exec.Command("youtube-dl", "-j", searchOption).Output()
 
 	if err != nil {
-		llog.Error(fmt.Sprintf("youtube-dl failed with: %s", err))
+		llog.Error("youtube-dl failed with: %s", err)
 	}
 
 	songs := []Song{}
@@ -43,12 +43,12 @@ func (b *YoutubeBackend) Search(pattern string) []Song {
 		result := YoutubeDlSearchResult{}
 		err = json.Unmarshal([]byte(l), &result)
 		if err != nil {
-			llog.Debug(fmt.Sprintf("Parsing youtube-dl results '%s' failed", l))
-			llog.Error(fmt.Sprintf("Parsing youtube-dl results failed with: %s", err))
+			llog.Debug("Parsing youtube-dl results '%s' failed", l)
+			llog.Error("Parsing youtube-dl results failed with: %s", err)
 		}
 		songs = append(songs, NewSong(result.Title, "", "youtube", result.Id))
 	}
 
-	llog.Debug(fmt.Sprintf("youtube found %d matching videos", len(songs)))
+	llog.Debug("youtube found %d matching videos", len(songs))
 	return songs
 }

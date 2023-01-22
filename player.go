@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os/exec"
 	"syscall"
@@ -31,11 +30,11 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 		case "local":
 			b = NewLocalBackend(wrms.Config.localMusicDir)
 		default:
-			llog.Error(fmt.Sprintf("Not supported backend %s", backend))
+			llog.Error("Not supported backend %s", backend)
 		}
 
 		if err != nil {
-			llog.Error(fmt.Sprintf("Error during initialization of the %s backend: %s", backend, err.Error()))
+			llog.Error("Error during initialization of the %s backend: %s", backend, err.Error())
 		} else {
 			available_backends[backend] = b
 		}
@@ -51,7 +50,7 @@ func (player *Player) Play(song *Song) {
 		return
 	}
 
-	llog.Info(fmt.Sprintf("Start playing %v", song))
+	llog.Info("Start playing %v", song)
 	player.Backends[song.Source].Play(song, player)
 }
 
@@ -69,7 +68,7 @@ func (player *Player) runMpv() {
 }
 
 func (player *Player) PlayUri(uri string) {
-	llog.Info(fmt.Sprintf("Start mpv with %s", uri))
+	llog.Info("Start mpv with %s", uri)
 	player.mpv = exec.Command("mpv", "--no-video", uri)
 	go player.runMpv()
 }
@@ -89,7 +88,7 @@ func (player *Player) PlayData(data io.Reader) {
 		defer stdin.Close()
 
 		if _, err := io.Copy(stdin, data); err != nil {
-			llog.Fatal(fmt.Sprintf("Failed to write song data to mpv (%v)", err))
+			llog.Fatal("Failed to write song data to mpv (%v)", err)
 		}
 	}()
 

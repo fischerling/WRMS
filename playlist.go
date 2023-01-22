@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/heap"
-	"fmt"
 	"muhq.space/go/wrms/llog"
 )
 
@@ -38,22 +37,22 @@ func (pl *Playlist) Pop() any {
 }
 
 func (pl *Playlist) PopSong() *Song {
-	llog.DDebug(fmt.Sprintf("popping song from the playlist (%p) -> %v", pl, pl))
+	llog.DDebug("popping song from the playlist (%p) -> %v", pl, pl)
 	if len(*pl) == 0 {
 		return nil
 	}
 
 	s := heap.Pop(pl).(*Song)
-	llog.DDebug(fmt.Sprintf("popped song %p from the playlist (%p) -> %v", s, pl, pl))
+	llog.DDebug("popped song %p from the playlist (%p) -> %v", s, pl, pl)
 	return s
 }
 
 func (pl *Playlist) Add(s *Song) {
 	heap.Push(pl, s)
-	llog.DDebug(fmt.Sprintf("added song %p to the playlist (%p) -> %v", s, pl, pl))
+	llog.DDebug("added song %p to the playlist (%p) -> %v", s, pl, pl)
 }
 
 func (pl *Playlist) Adjust(s *Song) {
 	heap.Fix(pl, s.index)
-	llog.DDebug(fmt.Sprintf("adjusting song %p in the playlist (%p) -> %v", s, pl, pl))
+	llog.DDebug("adjusting song %p in the playlist (%p) -> %v", s, pl, pl)
 }

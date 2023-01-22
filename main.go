@@ -35,16 +35,16 @@ func landingPage(w http.ResponseWriter, r *http.Request) {
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	pattern := r.URL.Query().Get("pattern")
 
-	llog.Debug(fmt.Sprintf("Searching for %s", pattern))
+	llog.Debug("Searching for %s", pattern)
 
 	results := wrms.Player.Search(pattern)
 	data, err := json.Marshal(Event{"search", results})
 	if err != nil {
-		llog.Error(fmt.Sprintf("Encoding the search result failed with %s", err))
+		llog.Error("Encoding the search result failed with %s", err)
 		return
 	}
 
-	llog.Info(fmt.Sprintf("Search returned: %s", string(data)))
+	llog.Info("Search returned: %s", string(data))
 	w.Write(data)
 }
 
@@ -57,7 +57,7 @@ func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
 	connId := uuidCookie.Value
 
 	songUri := r.URL.Query().Get("song")
-	llog.Info(fmt.Sprintf("%s song %s via url %s", vote, songUri, r.URL))
+	llog.Info("%s song %s via url %s", vote, songUri, r.URL)
 	wrms.AdjustSongWeight(connId, songUri, vote)
 }
 
@@ -76,7 +76,7 @@ func unvoteHandler(w http.ResponseWriter, r *http.Request) {
 func addHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		llog.Warning(fmt.Sprintf("Failed to read request body: %s", string(data)))
+		llog.Warning("Failed to read request body: %s", string(data))
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
 	}
@@ -87,7 +87,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	llog.Info(fmt.Sprintf("Added song %s", string(data)))
+	llog.Info("Added song %s", string(data))
 	wrms.AddSong(song)
 	wrms.Broadcast(Event{"add", []Song{song}})
 	fmt.Fprintf(w, "Added song %s", string(data))
@@ -100,7 +100,7 @@ func playPauseHandler(w http.ResponseWriter, r *http.Request) {
 func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
-		llog.Warning(fmt.Sprintf("Accepting the websocket failed with %s", err))
+		llog.Warning("Accepting the websocket failed with %s", err)
 		return
 	}
 
@@ -119,20 +119,20 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		llog.Info(fmt.Sprintf("cancel context of connection %d", id))
+		llog.Info("cancel context of connection %d", id)
 		cancel()
 	}()
 
 	conn := Connection{id, make(chan Event), c}
 	wrms.Connections = append(wrms.Connections, conn)
 
-	llog.Info(fmt.Sprintf("New websocket connection with id %d", id))
+	llog.Info("New websocket connection with id %d", id)
 
 	initialCmds := [][]byte{}
 	if wrms.Playing {
 		data, err := json.Marshal(Event{"play", []Song{wrms.CurrentSong}})
 		if err != nil {
-			llog.Error(fmt.Sprintf("Encoding the play event failed with %s", err))
+			llog.Error("Encoding the play event failed with %s", err)
 			return
 		}
 		initialCmds = append(initialCmds, data)
@@ -143,7 +143,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	if len(wrms.Songs) > 0 {
 		data, err := json.Marshal(Event{"add", wrms.Songs})
 		if err != nil {
-			llog.Error(fmt.Sprintf("Encoding the add event failed with %s", err))
+			llog.Error("Encoding the add event failed with %s", err)
 			return
 		}
 		initialCmds = append(initialCmds, data)
@@ -160,7 +160,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	if len(upvoted) > 0 {
 		data, err := json.Marshal(Event{"upvoted", upvoted})
 		if err != nil {
-			llog.Error(fmt.Sprintf("Encoding the upvoted event failed with %s", err))
+			llog.Error("Encoding the upvoted event failed with %s", err)
 			return
 		}
 		initialCmds = append(initialCmds, data)
@@ -169,17 +169,17 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	if len(downvoted) > 0 {
 		data, err := json.Marshal(Event{"downvoted", downvoted})
 		if err != nil {
-			llog.Error(fmt.Sprintf("Encoding the upvoted event failed with %s", err))
+			llog.Error("Encoding the upvoted event failed with %s", err)
 			return
 		}
 		initialCmds = append(initialCmds, data)
 	}
 
 	for _, data := range initialCmds {
-		llog.Info(fmt.Sprintf("Sending initial cmd %s", string(data)))
+		llog.Info("Sending initial cmd %s", string(data))
 		err = c.Write(ctx, websocket.MessageText, data)
 		if err != nil {
-			llog.Warning(fmt.Sprintf("Sending the initial commands failed with %s", err))
+			llog.Warning("Sending the initial commands failed with %s", err)
 			return
 		}
 	}
@@ -187,14 +187,14 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	for ev := range conn.Events {
 		data, err := json.Marshal(ev)
 		if err != nil {
-			llog.Error(fmt.Sprintf("Encoding the %s event failed with %s", ev.Event, err))
+			llog.Error("Encoding the %s event failed with %s", ev.Event, err)
 			return
 		}
 
-		llog.Debug(fmt.Sprintf("Sending ev %s to %s", string(data), id))
+		llog.Debug("Sending ev %s to %s", string(data), id)
 		err = c.Write(ctx, websocket.MessageText, data)
 		if err != nil {
-			llog.Warning(fmt.Sprintf("Sending the ev %s to %d failed with %s", string(data), id, err))
+			llog.Warning("Sending the ev %s to %d failed with %s", string(data), id, err)
 			return
 		}
 	}
@@ -231,5 +231,5 @@ func main() {
 	// wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
 	err := http.ListenAndServe(fmt.Sprintf(":%d", config.port), nil)
-	llog.Error(fmt.Sprintf("Serving http failed with %s", err))
+	llog.Error("Serving http failed with %s", err)
 }

@@ -21,7 +21,7 @@ var Level LogLevel = l_DDebug
 func SetLogLevelFromString(level string) {
 	for i, l := range getLevelNames() {
 		if l == level {
-			Level = LogLevel(i)
+			Level = LogLevel(i + 1)
 			return
 		}
 	}
@@ -44,38 +44,41 @@ func (l LogLevel) String() string {
 	return getLevelNames()[l-1]
 }
 
-func Log(l LogLevel, msg string) {
+func Log(l LogLevel, format string, a ...any) {
+	if l > Level {
+		return
+	}
+
+	msg := fmt.Sprintf(format, a...)
 	msg = fmt.Sprintf("[%s] %s", l.String(), msg)
 
 	if l == l_Fatal {
 		log.Fatalln(msg)
-	}
-
-	if l <= Level {
+	} else {
 		log.Println(msg)
 	}
 }
 
-func Fatal(msg string) {
-	Log(l_Fatal, msg)
+func Fatal(format string, a ...any) {
+	Log(l_Fatal, format, a...)
 }
 
-func Error(msg string) {
-	Log(l_Error, msg)
+func Error(format string, a ...any) {
+	Log(l_Error, format, a...)
 }
 
-func Warning(msg string) {
-	Log(l_Warning, msg)
+func Warning(format string, a ...any) {
+	Log(l_Warning, format, a...)
 }
 
-func Info(msg string) {
-	Log(l_Info, msg)
+func Info(format string, a ...any) {
+	Log(l_Info, format, a...)
 }
 
-func Debug(msg string) {
-	Log(l_Debug, msg)
+func Debug(format string, a ...any) {
+	Log(l_Debug, format, a...)
 }
 
-func DDebug(msg string) {
-	Log(l_DDebug, msg)
+func DDebug(format string, a ...any) {
+	Log(l_DDebug, format, a...)
 }

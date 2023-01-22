@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"muhq.space/go/wrms/llog"
@@ -31,7 +30,7 @@ func NewSongFromJson(data []byte) (Song, error) {
 	var s Song
 	err := json.Unmarshal(data, &s)
 	if err != nil {
-		llog.Error(fmt.Sprintf("Failed to parse song data %s with %s", string(data), err))
+		llog.Error("Failed to parse song data %s with %s", string(data), err)
 		return s, err
 	}
 
@@ -52,7 +51,7 @@ type Connection struct {
 }
 
 func (c *Connection) Close() {
-	llog.Info(fmt.Sprintf("Closing connection %s", c.Id))
+	llog.Info("Closing connection %s", c.Id)
 	close(c.Events)
 	c.C.Close(websocket.StatusNormalClosure, "")
 }
@@ -82,7 +81,7 @@ func (wrms *Wrms) Close() {
 }
 
 func (wrms *Wrms) Broadcast(cmd Event) {
-	llog.Info(fmt.Sprintf("Broadcasting %v", cmd))
+	llog.Info("Broadcasting %v", cmd)
 	for i := 0; i < len(wrms.Connections); i++ {
 		wrms.Connections[i].Events <- cmd
 	}
@@ -92,7 +91,7 @@ func (wrms *Wrms) AddSong(song Song) {
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
-	llog.Info(fmt.Sprintf("Added song %s (ptr=%p) to Songs", s.Uri, s))
+	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
 }
 
 func (wrms *Wrms) Next() {
@@ -102,7 +101,7 @@ func (wrms *Wrms) Next() {
 		return
 	}
 
-	llog.Info(fmt.Sprintf("popped next song and removing it from the song list %v", next))
+	llog.Info("popped next song and removing it from the song list %v", next)
 
 	for i, s := range wrms.Songs {
 		if s.Uri == wrms.CurrentSong.Uri {
@@ -147,11 +146,11 @@ func (wrms *Wrms) AdjustSongWeight(connId string, songUri string, vote string) {
 			continue
 		}
 
-		llog.Info(fmt.Sprintf("Adjusting song %s (ptr=%p)", s.Uri, s))
+		llog.Info("Adjusting song %s (ptr=%p)", s.Uri, s)
 		switch vote {
 		case "up":
 			if _, ok := s.Upvotes[connId]; ok {
-				llog.Error(fmt.Sprintf("Double upvote of song %s by connections %s", songUri, connId))
+				llog.Error("Double upvote of song %s by connections %s", songUri, connId)
 				return
 			}
 
@@ -166,7 +165,7 @@ func (wrms *Wrms) AdjustSongWeight(connId string, songUri string, vote string) {
 
 		case "down":
 			if _, ok := s.Downvotes[connId]; ok {
-				llog.Error(fmt.Sprintf("Double downvote of song %s by connections %s", songUri, connId))
+				llog.Error("Double downvote of song %s by connections %s", songUri, connId)
 				return
 			}
 
@@ -189,7 +188,7 @@ func (wrms *Wrms) AdjustSongWeight(connId string, songUri string, vote string) {
 				delete(s.Upvotes, connId)
 				s.Weight -= 1
 			} else {
-				llog.Error(fmt.Sprintf("Double unvote of song %s by connections %s", songUri, connId))
+				llog.Error("Double unvote of song %s by connections %s", songUri, connId)
 				return
 			}
 
