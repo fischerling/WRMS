@@ -1,60 +1,45 @@
 :root {
-    --background: #222222;
-    --primary: white;
-    --secondary: gray;
-    --link: yellow;
+	--background: #222222;
+	--primary: white;
+	--secondary: gray;
+	--link: yellow;
 }
 
 html {
-    width: 100%;
-    overflow: hidden;
+	width: 100%;
+	overflow: hidden;
 }
 
 body {
-    position: fixed;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    background-color: var(--background);
-    color: var(--primary);
+	position: fixed;
+	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	background-color: var(--background);
+	color: var(--primary);
 }
 
 .flex-column {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 
 .flex-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
 }
 
 .icon-button {
-    --icon-size: 4em;
-    border: none;
-    background-color: transparent;
+	--icon-size: 4em;
+	border: none;
+	background-color: transparent;
 }
 .icon-button > img {
-    width: var(--icon-size);
-    height: var(--icon-size);
-    filter: invert(100%);
-}
-
-#play-pause.pause > img:nth-child(1) {
-    display: none;
-}
-#play-pause.play > img:nth-child(2) {
-    display: none;
-}
-
-#searchResults > div > button {
-    --icon-size: 2em;
-}
-#searchResults > div > small {
-    color: var(--secondary);
-    margin-left: 0.5em;
+	width: var(--icon-size);
+	height: var(--icon-size);
+	filter: invert(100%);
 }

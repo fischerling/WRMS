@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 
@@ -19,17 +18,7 @@ import (
 var wrms *Wrms
 
 func landingPage(w http.ResponseWriter, r *http.Request) {
-	if _, err := r.Cookie("UUID"); err != nil {
-		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: uuid.NewString()})
-	}
-
-	t, err := template.ParseFiles("web/client.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	t.Execute(w, "")
+	http.Redirect(w, r, "/static/index.html", 301)
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +198,7 @@ func setupRoutes() {
 	http.HandleFunc("/add", addHandler)
 	http.HandleFunc("/playpause", playPauseHandler)
 	http.HandleFunc("/ws", wsEndpoint)
-	http.Handle("/static/", http.FileServer(http.Dir("./web")))
+	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./web/build"))))
 }
 
 func main() {
