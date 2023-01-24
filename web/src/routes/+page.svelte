@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import addSVG from '../../static/play.svg';
-	import playSVG from '../../static/play.svg';
-	import pauseSVG from '../../static/pause.svg';
+	import addSVG from '../svg/add.svg';
+	import playSVG from '../svg/play.svg';
+	import pauseSVG from '../svg/pause.svg';
 	import type { WsMessage, Song, SearchResponse } from '../lib/api';
 	import API from '../lib/api';
 	API.baseUrl = '/';
