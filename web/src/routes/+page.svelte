@@ -104,83 +104,109 @@
 	}
 </script>
 
-<div class="content flex-column">
-	<div class="flex-row">
-		<div class="flex-column">
-			<h1>Add your song</h1>
-			<form on:submit|preventDefault={submitSearch}>
-				<label
-					><input bind:value={search} id="search-bar" placeholder="Title/Artist/Album/..." /></label
+<div class="content">
+	<form on:submit|preventDefault={submitSearch}>
+		<h1>Add your song</h1>
+		<label><input bind:value={search} id="search-bar" placeholder="Title/Artist/Album/..." /></label
+		>
+		<button formaction="submit">Search</button>
+	</form>
+	<div class="list">
+		{#each searchResults as { title, artist, source, uri, weight } (uri)}
+			<div class="flex-row search-results">
+				<button
+					class="icon-button"
+					on:click={() =>
+						API.post('add', { title, artist, source, uri, weight }).then(console.debug)}
 				>
-				<button formaction="submit">Search</button>
-			</form>
-			{#each searchResults as { title, artist, source, uri, weight } (uri)}
-				<div class="flex-row search-results">
-					<button
-						class="icon-button"
-						on:click={() =>
-							API.post('add', { title, artist, source, uri, weight }).then(console.debug)}
-					>
-						<img src={addSVG} alt="Add" />
-					</button>
-					{artist + ' - ' + title}
-					<small>{source}</small>
-				</div>
-			{/each}
-		</div>
-		<div class="flex-column">
-			<h1>Playlist</h1>
-			{#each playlist as { title, artist, source, uri, weight } (uri)}
-				<div>
-					<button class="vote" on:click={vote('up', uri)}>Up</button>
-					<button class="vote" on:click={vote('down', uri)}>Down</button>
-					{`${weight} ${artist} - ${title}`}
-					<small>{`(${source})`}</small>
-				</div>
-			{/each}
-		</div>
+					<img src={addSVG} alt="Add" />
+				</button>
+				{artist + ' - ' + title}
+				<small>{source}</small>
+			</div>
+		{/each}
 	</div>
+	<h1>Playlist</h1>
+	<div class="list">
+		{#each playlist as { title, artist, source, uri, weight } (uri)}
+			<div>
+				<button class="vote" on:click={vote('up', uri)}>Up</button>
+				<button class="vote" on:click={vote('down', uri)}>Down</button>
+				{`${weight} ${artist} - ${title}`}
+				<small>{`(${source})`}</small>
+			</div>
+		{/each}
+	</div>
+</div>
 
-	<div class="player flex-row">
-		<button class="icon-button" on:click={() => API.get('playpause').then(console.debug)}>
-			{#if status === 'playing'}
-				<img src={pauseSVG} alt="Pause" />
-			{:else}
-				<img src={playSVG} alt="Play" />
-			{/if}
-		</button>
-		<p>
-			{#if currentSong !== null}
-				{currentSong.title} <br /> <small>{currentSong.artist}</small>
-			{:else}
-				No songs schedulded :( <br /> <a href="#search-bar">Try adding some.</a>
-			{/if}
-		</p>
-	</div>
+<div class="player flex-row">
+	<button class="icon-button" on:click={() => API.get('playpause').then(console.debug)}>
+		{#if status === 'playing'}
+			<img src={pauseSVG} alt="Pause" />
+		{:else}
+			<img src={playSVG} alt="Play" />
+		{/if}
+	</button>
+	<p>
+		{#if currentSong !== null}
+			{currentSong.title} <br /> <small>{currentSong.artist}</small>
+		{:else}
+			No songs schedulded :( <br /> <a href="#search-bar">Try adding some.</a>
+		{/if}
+	</p>
 </div>
 
 <style>
 	.content {
 		width: 100vw;
-		min-height: 100vh;
+		height: calc(100vh - 5em);
 	}
-	.content > :first-child {
-		flex-grow: 1;
-		width: 100%;
+
+	@media (max-width: 50em) {
+		.content {
+			overflow-y: scroll;
+			display: flex;
+			flex-direction: column;
+				align-items: center;
+		}
 	}
-	.content > :first-child > div {
-		flex-basis: 0;
-		flex-grow: 1;
-		overflow-y: scroll;
-		overflow-x: hidden;
-	}
-	.content > :first-child > div:first-child {
-		border-right: 1px solid white;
+	@media not (max-width: 50em) {
+		.content {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			grid-template-rows: min-content 1fr;
+		}
+		.content > * {
+			grid-row: 1;
+		}
+		.content > form {
+			grid-column: 1;
+		}
+		.content > h1 {
+			grid-column: 2;
+		}
+
+		.content > .list {
+			grid-row: 2;
+		}
+		.content > div.list:first-child {
+			grid-column: 1;
+		}
+		.content > div.list:last-child {
+			grid-column: 2;
+		}
+
+		.list {
+			overflow-y: scroll;
+		}
 	}
 
 	.player {
-		border-top: 1px solid white;
+		position: fixed;
+		bottom: 0;
 		width: 100%;
+		height: 5em;
+		border-top: 1px solid white;
 	}
 
 	.search-results > button {
