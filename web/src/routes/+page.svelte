@@ -5,11 +5,13 @@
 	import pauseSVG from '../svg/pause.svg';
 	import type { WsMessage, Song, SearchResponse } from '../lib/api';
 	import API from '../lib/api';
+	import devData from '../lib/devData.json';
+	import { dev } from '$app/environment';
 	API.baseUrl = '/';
 
 	let status: 'paused' | 'playing' = 'paused';
 	let currentSong: Song | null = null;
-	let playlist: Array<Song> = [];
+	let playlist: Array<Song> = dev ? devData : [];
 	let votes: Map<string, 'up' | 'down'> = new Map();
 
 	let search = '';
@@ -167,7 +169,7 @@
 			overflow-y: scroll;
 			display: flex;
 			flex-direction: column;
-				align-items: center;
+			align-items: center;
 		}
 	}
 	@media not (max-width: 50em) {
