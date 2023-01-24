@@ -18,7 +18,11 @@ import (
 var wrms *Wrms
 
 func landingPage(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/static/index.html", 301)
+	if _, err := r.Cookie("UUID"); err != nil {
+		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: uuid.NewString(), Path: "/",})
+	}
+
+	http.Redirect(w, r, "/static/index.html", http.StatusSeeOther)
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
