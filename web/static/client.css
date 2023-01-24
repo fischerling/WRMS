@@ -2,7 +2,6 @@
 	--background: #222222;
 	--primary: white;
 	--secondary: gray;
-	--link: yellow;
 }
 
 html {
@@ -19,6 +18,14 @@ body {
 	margin: 0;
 	background-color: var(--background);
 	color: var(--primary);
+}
+
+a {
+	color: yellow;
+	text-decoration: none;
+}
+a:hover {
+	color: orange;
 }
 
 .flex-column {

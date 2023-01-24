@@ -18,6 +18,9 @@
 	let socket: WebSocket;
 	onMount(function () {
 		socket = new WebSocket('ws://localhost:8080/ws');
+		// Expose websocket for debugging
+		// ts-ignore
+		window.WS = socket;
 		console.info('Attempting Connection...');
 
 		socket.onopen = () => {
@@ -101,38 +104,29 @@
 	}
 </script>
 
-<div class="flex-column">
-	<h2>Currently Playing</h2>
-	<p>{currentSong?.title || 'Nothing'}</p>
-	<div id="controls">
-		<button class="icon-button play" on:click={() => API.get('playpause').then(console.debug)}>
-			{#if status === 'playing'}
-				<img src={pauseSVG} alt="Pause" />
-			{:else}
-				<img src={playSVG} alt="Play" />
-			{/if}
-		</button>
-	</div>
+<div class="content flex-column">
 	<div class="flex-row">
 		<div class="flex-column">
 			<h1>Add your song</h1>
 			<form on:submit|preventDefault={submitSearch}>
-				<label><input bind:value={search} placeholder="Title/Artist/Album/..." /></label>
+				<label
+					><input bind:value={search} id="search-bar" placeholder="Title/Artist/Album/..." /></label
+				>
 				<button formaction="submit">Search</button>
-				{#each searchResults as { title, artist, source, uri, weight } (uri)}
-					<div class="flex-row search-results">
-						<button
-							class="icon-button"
-							on:click={() =>
-								API.post('add', { title, artist, source, uri, weight }).then(console.debug)}
-						>
-							<img src={addSVG} alt="Add" />
-						</button>
-						{artist + ' - ' + title}
-						<small>{source}</small>
-					</div>
-				{/each}
 			</form>
+			{#each searchResults as { title, artist, source, uri, weight } (uri)}
+				<div class="flex-row search-results">
+					<button
+						class="icon-button"
+						on:click={() =>
+							API.post('add', { title, artist, source, uri, weight }).then(console.debug)}
+					>
+						<img src={addSVG} alt="Add" />
+					</button>
+					{artist + ' - ' + title}
+					<small>{source}</small>
+				</div>
+			{/each}
 		</div>
 		<div class="flex-column">
 			<h1>Playlist</h1>
@@ -146,9 +140,49 @@
 			{/each}
 		</div>
 	</div>
+
+	<div class="player flex-row">
+		<button class="icon-button" on:click={() => API.get('playpause').then(console.debug)}>
+			{#if status === 'playing'}
+				<img src={pauseSVG} alt="Pause" />
+			{:else}
+				<img src={playSVG} alt="Play" />
+			{/if}
+		</button>
+		<p>
+			{#if currentSong !== null}
+				{currentSong.title} <br /> <small>{currentSong.artist}</small>
+			{:else}
+				No songs schedulded :( <br /> <a href="#search-bar">Try adding some.</a>
+			{/if}
+		</p>
+	</div>
 </div>
 
 <style>
+	.content {
+		width: 100vw;
+		min-height: 100vh;
+	}
+	.content > :first-child {
+		flex-grow: 1;
+		width: 100%;
+	}
+	.content > :first-child > div {
+		flex-basis: 0;
+		flex-grow: 1;
+		overflow-y: scroll;
+		overflow-x: hidden;
+	}
+	.content > :first-child > div:first-child {
+		border-right: 1px solid white;
+	}
+
+	.player {
+		border-top: 1px solid white;
+		width: 100%;
+	}
+
 	.search-results > button {
 		--icon-size: 2em;
 	}
