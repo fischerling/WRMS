@@ -1,17 +1,15 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import addSVG from '../svg/add.svg';
-	import playSVG from '../svg/play.svg';
-	import pauseSVG from '../svg/pause.svg';
-	import type { WsMessage, Song, SearchResponse } from '../lib/api';
-	import API from '../lib/api';
-	import devData from '../lib/devData.json';
-	import { dev } from '$app/environment';
+	import addSVG from './assets/add.svg';
+	import playSVG from './assets/play.svg';
+	import pauseSVG from './assets/pause.svg';
+	import type { WsMessage, Song, SearchResponse } from './lib/api';
+	import API from './lib/api';
 	API.baseUrl = '/';
 
 	let status: 'paused' | 'playing' = 'paused';
 	let currentSong: Song | null = null;
-	let playlist: Array<Song> = dev ? devData : [];
+	let playlist: Array<Song> = [];
 	let votes: Map<string, 'up' | 'down'> = new Map();
 
 	let search = '';
