@@ -34,7 +34,7 @@ func (b *YoutubeBackend) Search(pattern string) []Song {
 		llog.Error("youtube-dl failed with: %s", err)
 	}
 
-	songs := []Song{}
+	songs := make([]Song, 0)
 	for _, l := range strings.Split(string(results), "\n") {
 		if l == "" {
 			continue

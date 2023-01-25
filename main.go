@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"muhq.space/go/wrms/llog"
@@ -40,7 +40,9 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	llog.Info("Search returned: %s", string(data))
-	w.Write(data)
+	if _, err = w.Write(data); err != nil {
+		llog.Error("Error writing to response writer: %s", err.Error())
+	}
 }
 
 func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
@@ -69,7 +71,7 @@ func unvoteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		llog.Warning("Failed to read request body: %s", string(data))
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
@@ -85,7 +87,10 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	llog.Info("Added song %s", string(data))
 	wrms.AddSong(song)
 	wrms.Broadcast(Event{"add", []Song{song}})
-	fmt.Fprintf(w, "Added song %s", string(data))
+	if _, err = fmt.Fprintf(w, "Added song %s", string(data)); err != nil {
+		llog.Error("Failed to write to response writer: %s", err.Error())
+		http.Error(w, "Failed to write to response writer", http.StatusInternalServerError)
+	}
 }
 
 func playPauseHandler(w http.ResponseWriter, r *http.Request) {
@@ -106,15 +111,21 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	uuidCookie, err := r.Cookie("UUID")
 	if err != nil {
 		llog.Error("websocket connection has no set UUID cookie")
+		http.Error(w, "websocket connection has not set UUID cookie", http.StatusBadRequest)
+		cancel()
+		return
 	}
 
 	id, err := uuid.Parse(uuidCookie.Value)
 	if err != nil {
 		llog.Error("Invalid UUID set in cookie")
+		http.Error(w, "Invalid UUID set in cookie", http.StatusBadRequest)
+		cancel()
+		return
 	}
 
 	defer func() {
-		llog.Info("cancel context of connection %d", id)
+		llog.Info("cancel context of connection %s", id)
 		cancel()
 	}()
 
@@ -123,7 +134,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	llog.Info("New websocket connection with id %d", id)
 
-	initialCmds := [][]byte{}
+	initialCmds := make([][]byte, 0)
 	if wrms.Playing {
 		data, err := json.Marshal(Event{"play", []Song{wrms.CurrentSong}})
 		if err != nil {
@@ -133,8 +144,8 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		initialCmds = append(initialCmds, data)
 	}
 
-	upvoted := []Song{}
-	downvoted := []Song{}
+	upvoted := make([]Song, 0)
+	downvoted := make([]Song, 0)
 	if len(wrms.Songs) > 0 {
 		data, err := json.Marshal(Event{"add", wrms.Songs})
 		if err != nil {

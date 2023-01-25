@@ -87,7 +87,7 @@ func (b *LocalBackend) Play(song *Song, player *Player) {
 
 func (b *LocalBackend) Search(keyword string) []Song {
 	pattern := strings.ToLower(keyword)
-	results := []Song{}
+	results := make([]Song, 0)
 
 	b.lock.RLock()
 	defer b.lock.RUnlock()

@@ -100,7 +100,7 @@ func (spotify *SpotifyBackend) Search(keyword string) []Song {
 
 	fmt.Printf("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
 
-	results := []Song{}
+	results := make([]Song, 0)
 	for _, track := range res.Tracks.Hits {
 		uriParts := strings.Split(track.Uri, ":")
 		results = append(results, NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts)-1]))
