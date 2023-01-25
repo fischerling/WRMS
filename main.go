@@ -17,12 +17,14 @@ import (
 
 var wrms *Wrms
 
-func landingPage(w http.ResponseWriter, r *http.Request) {
+func retrieveCookie(w http.ResponseWriter, r *http.Request) {
 	if _, err := r.Cookie("UUID"); err != nil {
-		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: uuid.NewString(), Path: "/",})
+		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: uuid.NewString(), Path: "/"})
 	}
 
 	http.Redirect(w, r, "/static/index.html", http.StatusSeeOther)
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +196,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func setupRoutes() {
-	http.HandleFunc("/", landingPage)
+	http.HandleFunc("/cookie", retrieveCookie)
 	http.HandleFunc("/search", searchHandler)
 	http.HandleFunc("/up", upHandler)
 	http.HandleFunc("/down", downHandler)
@@ -202,7 +204,7 @@ func setupRoutes() {
 	http.HandleFunc("/add", addHandler)
 	http.HandleFunc("/playpause", playPauseHandler)
 	http.HandleFunc("/ws", wsEndpoint)
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./web/build"))))
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./web/dist"))))
 }
 
 func main() {
@@ -223,6 +225,7 @@ func main() {
 	// wrms.AddSong(NewDummySong("Lala", "SNFMT"))
 	// wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
+	fmt.Printf("Listening on http://0.0.0.0:%d\n", config.port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", config.port), nil)
 	llog.Error("Serving http failed with %s", err)
 }
