@@ -17,7 +17,11 @@
 
 	let socket: WebSocket;
 	onMount(function () {
-		socket = new WebSocket('ws://localhost:8080/ws');
+		const proto = document.location.protocol === "https:" ? "wss:": "ws:";
+		const port = document.location.port;
+		const host = document.location.hostname;
+
+		socket = new WebSocket(`${proto}//${host}:${port}/ws`);
 		// Expose websocket for debugging
 		// ts-ignore
 		window.WS = socket;
