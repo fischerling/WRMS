@@ -11,11 +11,11 @@ import (
 )
 
 type Config struct {
-	Port          int       `yaml:"port"`
-	Backends      []string  `yaml:"backends"`
-	LocalMusicDir string    `yaml:"music-dir"`
-	UploadDir     string    `yaml:"upload-dir"`
-	Admin         uuid.UUID `yaml:"admin"`
+	Port          int            `yaml:"port"`
+	Backends      []string       `yaml:"backends"`
+	LocalMusicDir string         `yaml:"music-dir"`
+	UploadDir     string         `yaml:"upload-dir"`
+	Admin         uuid.UUID      `yaml:"admin"`
 	Spotify       *SpotifyConfig `yaml:"spotify`
 	HasUpload     bool
 }
