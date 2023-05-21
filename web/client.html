@@ -300,9 +300,11 @@
       }
 
       window.onload = function() {
+        {{if .IsAdmin}}
         document.getElementById("ppbutton").addEventListener("click", function() {
           new HttpClient().get("/playpause", console.log);
         });
+        {{end}}
       }
     </script>
   </head>
