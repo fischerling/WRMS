@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"muhq.space/go/wrms/llog"
 
@@ -17,19 +18,17 @@ import (
 )
 
 var wrms *Wrms
+var pageTemplate *template.Template
 
 func landingPage(w http.ResponseWriter, r *http.Request) {
 	if _, err := r.Cookie("UUID"); err != nil {
 		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: uuid.NewString()})
 	}
 
-	t, err := template.ParseFiles("web/client.html")
-	if err != nil {
+	if err := pageTemplate.Execute(w, wrms.Config); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	t.Execute(w, "")
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +86,6 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	llog.Info("Added song %s", string(data))
 	wrms.AddSong(song)
 	wrms.Broadcast(Event{"add", []Song{song}})
 	fmt.Fprintf(w, "Added song %s", string(data))
@@ -214,21 +212,25 @@ func setupRoutes() {
 func main() {
 	config := Config{}
 	logLevel := flag.String("loglevel", "Warning", "log level")
-	flag.IntVar(&config.port, "port", 8080, "port to listen to")
-	flag.StringVar(&config.backends, "backends", "dummy youtube spotify", "music backend to use")
-	flag.StringVar(&config.localMusicDir, "serve-music-dir", "", "local music directory to serve")
+	flag.IntVar(&config.Port, "port", 8080, "port to listen to")
+	flag.StringVar(&config.Backends, "backends", "dummy youtube spotify", "music backend to use")
+	flag.StringVar(&config.LocalMusicDir, "serve-music-dir", "", "local music directory to serve")
+	flag.StringVar(&config.UploadDir, "upload-dir", "uploads/", "directory to upload songs to")
 	flag.Parse()
 
 	llog.SetLogLevelFromString(*logLevel)
+	config.HasUpload = strings.Contains(config.Backends, "upload")
 
 	wrms = NewWrms(config)
 	defer wrms.Close()
 
 	setupRoutes()
 
+	pageTemplate = template.Must(template.ParseFiles("web/client.html"))
+
 	// wrms.AddSong(NewDummySong("Lala", "SNFMT"))
 	// wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", config.port), nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil)
 	llog.Error("Serving http failed with %s", err)
 }

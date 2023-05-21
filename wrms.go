@@ -69,7 +69,7 @@ type Wrms struct {
 func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
 	wrms.Config = config
-	wrms.Player = NewPlayer(&wrms, strings.Split(config.backends, " "))
+	wrms.Player = NewPlayer(&wrms, strings.Split(config.Backends, " "))
 	return &wrms
 }
 

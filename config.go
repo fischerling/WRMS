@@ -1,7 +1,9 @@
 package main
 
 type Config struct {
-	port          int
-	backends      string
-	localMusicDir string
+	Port          int
+	Backends      string
+	LocalMusicDir string
+	UploadDir     string
+	HasUpload     bool
 }
