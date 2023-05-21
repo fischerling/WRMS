@@ -13,7 +13,7 @@
   - [ ] distinguish different search queries
 - [X] Implement local storage backend
   - [X] Implement upload
-    - [ ] Remove uploaded songs after were played
+    - [X] Remove uploaded songs after they were played
 - [X] Fix youtube search
 
 ## Configuration

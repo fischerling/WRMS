@@ -66,11 +66,15 @@ func (player *Player) runMpv() {
 		llog.Fatal(err.Error())
 	}
 
+	wrms := player.wrms
+
 	llog.Info("mpv finished. Resetting mpv, the current song and call play")
 	player.mpv = nil
-	player.wrms.Playing = false
-	player.wrms.CurrentSong.Uri = ""
-	player.wrms.PlayPause()
+	wrms.Playing = false
+
+	player.Backends[wrms.CurrentSong.Source].OnSongFinished(&wrms.CurrentSong)
+	wrms.CurrentSong.Uri = ""
+	wrms.PlayPause()
 }
 
 func (player *Player) PlayUri(uri string) {

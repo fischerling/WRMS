@@ -113,6 +113,8 @@ func (wrms *Wrms) AddSong(song Song) {
 }
 
 func (wrms *Wrms) Next() {
+	llog.DDebug("Next Song")
+
 	next := wrms.queue.PopSong()
 	if next == nil {
 		wrms.CurrentSong.Uri = ""

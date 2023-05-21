@@ -49,6 +49,8 @@ func NewSpotify() (*SpotifyBackend, error) {
 	return &spotify, nil
 }
 
+func (_ *SpotifyBackend) OnSongFinished(*Song) {}
+
 func (spotify *SpotifyBackend) Play(song *Song, player *Player) {
 	trackID := song.Uri
 	session := spotify.session

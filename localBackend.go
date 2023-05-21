@@ -45,6 +45,8 @@ func NewLocalBackend(musicDir string) *LocalBackend {
 	return &b
 }
 
+func (_ *LocalBackend) OnSongFinished(*Song) {}
+
 func (b *LocalBackend) insert(songs []*Song) {
 	llog.Debug("Inserting %d songs into local DB", len(songs))
 	tx, err := b.db.Begin()

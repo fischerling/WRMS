@@ -74,6 +74,12 @@ func (b *UploadBackend) setupUploadRoute() {
 	http.HandleFunc("/upload", b.upload)
 }
 
+func (b *UploadBackend) OnSongFinished(song *Song) {
+	songPath := path.Join(b.uploadDir, song.Uri)
+	llog.Debug("Removing finished song %s", songPath)
+	os.Remove(songPath)
+}
+
 func (b *UploadBackend) Play(song *Song, player *Player) {
 	player.PlayUri("file://" + path.Join(b.uploadDir, song.Uri))
 }
