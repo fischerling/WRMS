@@ -112,7 +112,6 @@ func (wrms *Wrms) Next() {
 	}
 
 	wrms.CurrentSong = *next
-
 }
 
 func (wrms *Wrms) PlayPause() {

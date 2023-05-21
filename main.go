@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"muhq.space/go/wrms/llog"
 
@@ -36,7 +37,16 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	llog.Debug("Searching for %s", pattern)
 
-	results := wrms.Player.Search(pattern)
+	start := time.Now()
+	resultsChan := wrms.Player.Search(pattern)
+	results := []Song{}
+
+	for result := range resultsChan {
+		results = append(results, result...)
+	}
+
+	llog.Debug("searching for %s took %v", pattern, time.Since(start))
+
 	data, err := json.Marshal(Event{"search", results})
 	if err != nil {
 		llog.Error("Encoding the search result failed with %s", err)

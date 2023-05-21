@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os/exec"
+	"sync"
 	"syscall"
 
 	"muhq.space/go/wrms/llog"
@@ -110,10 +111,24 @@ func (player *Player) Pause() {
 	}
 }
 
-func (player *Player) Search(pattern string) []Song {
-	results := []Song{}
+func (player *Player) Search(pattern string) chan []Song {
+	var wg sync.WaitGroup
+	wg.Add(len(player.Backends))
+
+	ch := make(chan []Song)
+
 	for _, backend := range player.Backends {
-		results = append(results, backend.Search(pattern)...)
+		backend := backend
+		go func() {
+			ch <- backend.Search(pattern)
+			wg.Done()
+		}()
 	}
-	return results
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	return ch
 }
