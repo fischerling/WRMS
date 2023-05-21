@@ -16,7 +16,7 @@ type Config struct {
 	LocalMusicDir string         `yaml:"music-dir"`
 	UploadDir     string         `yaml:"upload-dir"`
 	Admin         uuid.UUID      `yaml:"admin"`
-	Spotify       *SpotifyConfig `yaml:"spotify`
+	Spotify       *SpotifyConfig `yaml:"spotify"`
 	HasUpload     bool
 }
 
