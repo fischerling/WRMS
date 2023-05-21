@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 	// "path/filepath"
-	"io/ioutil"
+	"io"
 
 	"github.com/dhowden/tag"
 	"muhq.space/go/wrms/llog"
@@ -34,7 +34,7 @@ func NewUploadBackend(uploadDir string) *UploadBackend {
 }
 
 func (b *UploadBackend) upload(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		llog.Warning("Failed to read request body: %s", string(data))
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
