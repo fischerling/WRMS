@@ -23,7 +23,7 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 	for _, backend := range backends {
 		switch backend {
 		case "spotify":
-			b, err = NewSpotify(wrms.Config.spotify)
+			b, err = NewSpotify(wrms.Config.Spotify)
 		case "youtube":
 			b = NewYoutubeBackend()
 		case "dummy":
