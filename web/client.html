@@ -190,7 +190,8 @@
         playing.appendChild(songLabel);
       }
 
-      let socket = new WebSocket("ws://localhost:8080/ws");
+      let socket_url = "ws://"+location.hostname + (location.port ? ":" + location.port: "") + "/ws";
+      let socket = new WebSocket(socket_url);
       console.log("Attempting Connection...");
 
       socket.onopen = () => {
