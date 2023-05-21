@@ -99,11 +99,22 @@ func (wrms *Wrms) Broadcast(ev Event) {
 	}
 }
 
+func (wrms *Wrms) startPlaying() {
+	wrms.Broadcast(Event{"play", []Song{wrms.CurrentSong}})
+	wrms.Player.Play(&wrms.CurrentSong)
+}
+
 func (wrms *Wrms) AddSong(song Song) {
+	startPlayingAgain := wrms.Playing && wrms.CurrentSong.Uri == ""
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
 	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
+	wrms.Broadcast(Event{"add", []Song{song}})
+
+	if startPlayingAgain {
+		wrms.Next()
+	}
 }
 
 func (wrms *Wrms) Next() {
@@ -112,6 +123,7 @@ func (wrms *Wrms) Next() {
 	next := wrms.queue.PopSong()
 	if next == nil {
 		wrms.CurrentSong.Uri = ""
+		wrms.Broadcast(newNotification("stop"))
 		return
 	}
 
@@ -126,30 +138,25 @@ func (wrms *Wrms) Next() {
 	}
 
 	wrms.CurrentSong = *next
+	if wrms.Playing {
+		wrms.startPlaying()
+	}
 }
 
 func (wrms *Wrms) PlayPause() {
-	var ev Event
-	if !wrms.Playing {
+	wrms.Playing = !wrms.Playing
+
+	if wrms.Playing {
 		if wrms.CurrentSong.Uri == "" {
 			llog.Info("No song currently playing play the next")
 			wrms.Next()
-			if wrms.CurrentSong.Uri == "" {
-				llog.Info("No song left to play")
-				wrms.Broadcast(newNotification("stop"))
-				return
-			}
+		} else {
+			wrms.startPlaying()
 		}
-		ev = Event{"play", []Song{wrms.CurrentSong}}
-		wrms.Player.Play(&wrms.CurrentSong)
 	} else {
-		ev = newNotification("pause")
+		wrms.Broadcast(newNotification("pause"))
 		wrms.Player.Pause()
 	}
-
-	wrms.Playing = !wrms.Playing
-
-	wrms.Broadcast(ev)
 }
 
 func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string) {

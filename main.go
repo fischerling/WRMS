@@ -137,7 +137,6 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wrms.AddSong(song)
-	wrms.Broadcast(Event{"add", []Song{song}})
 	fmt.Fprintf(w, "Added song %s", string(data))
 }
 
