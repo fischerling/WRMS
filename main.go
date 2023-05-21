@@ -138,14 +138,14 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		llog.Info("cancel context of connection %d", id)
+		llog.Info("cancel context of connection %v", id)
 		cancel()
 	}()
 
 	conn := &Connection{id, make(chan Event), c}
 	wrms.Connections[id] = conn
 
-	llog.Info("New websocket connection with id %d", id)
+	llog.Info("New websocket connection with id %v", id)
 
 	initialCmds := [][]byte{}
 	if wrms.Playing {

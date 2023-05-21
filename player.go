@@ -16,7 +16,7 @@ type Player struct {
 }
 
 func NewPlayer(wrms *Wrms, backends []string) Player {
-	available_backends := map[string]Backend{}
+	availableBackends := map[string]Backend{}
 
 	var b Backend
 	var err error
@@ -39,11 +39,11 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 		if err != nil {
 			llog.Error("Error during initialization of the %s backend: %s", backend, err.Error())
 		} else {
-			available_backends[backend] = b
+			availableBackends[backend] = b
 		}
 	}
 
-	return Player{available_backends, nil, wrms}
+	return Player{availableBackends, nil, wrms}
 }
 
 func (player *Player) Play(song *Song) {
