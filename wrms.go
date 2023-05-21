@@ -44,10 +44,18 @@ type Event struct {
 	Songs []Song `json:"songs"`
 }
 
+func newNotification(notification string) Event {
+	return Event{notification, nil}
+}
+
 type Connection struct {
 	Id     uuid.UUID
 	Events chan Event
 	C      *websocket.Conn
+}
+
+func (c *Connection) Send(ev Event) {
+	c.Events <- ev
 }
 
 func (c *Connection) Close() {
@@ -57,7 +65,7 @@ func (c *Connection) Close() {
 }
 
 type Wrms struct {
-	Connections []Connection
+	Connections map[uuid.UUID]*Connection
 	Songs       []Song
 	queue       Playlist
 	CurrentSong Song
@@ -69,8 +77,18 @@ type Wrms struct {
 func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
 	wrms.Config = config
+	wrms.Connections = make(map[uuid.UUID]*Connection)
 	wrms.Player = NewPlayer(&wrms, strings.Split(config.Backends, " "))
 	return &wrms
+}
+
+func (wrms *Wrms) GetConn(connId string) *Connection {
+	id, err := uuid.Parse(connId)
+	if err != nil {
+		llog.Fatal("Failed to parse connId %s: %v", connId, err)
+	}
+
+	return wrms.Connections[id]
 }
 
 func (wrms *Wrms) Close() {
@@ -80,10 +98,10 @@ func (wrms *Wrms) Close() {
 	}
 }
 
-func (wrms *Wrms) Broadcast(cmd Event) {
-	llog.Info("Broadcasting %v", cmd)
-	for i := 0; i < len(wrms.Connections); i++ {
-		wrms.Connections[i].Events <- cmd
+func (wrms *Wrms) Broadcast(ev Event) {
+	llog.Info("Broadcasting %v", ev)
+	for _, conn := range wrms.Connections {
+		conn.Send(ev)
 	}
 }
 
@@ -122,14 +140,14 @@ func (wrms *Wrms) PlayPause() {
 			wrms.Next()
 			if wrms.CurrentSong.Uri == "" {
 				llog.Info("No song left to play")
-				wrms.Broadcast(Event{"stop", []Song{}})
+				wrms.Broadcast(newNotification("stop"))
 				return
 			}
 		}
 		ev = Event{"play", []Song{wrms.CurrentSong}}
 		wrms.Player.Play(&wrms.CurrentSong)
 	} else {
-		ev = Event{"pause", []Song{}}
+		ev = newNotification("pause")
 		wrms.Player.Pause()
 	}
 

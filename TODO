@@ -1,5 +1,6 @@
 ## Fronted
-- [ ] support incremental search results
+- [X] support incremental search results
+  - [ ] distinguish different search queries
 
 ## Web Backend
 
@@ -8,7 +9,8 @@
 ## Backends
 
 - [X] paralyze search
-  - [ ] report results incrementally
+  - [X] report results incrementally
+  - [ ] distinguish different search queries
 - [X] Implement local storage backend
   - [X] Implement upload
     - [ ] Remove uploaded songs after were played

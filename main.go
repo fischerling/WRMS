@@ -32,38 +32,49 @@ func landingPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getConnId(w http.ResponseWriter, r *http.Request) string {
+	uuidCookie, err := r.Cookie("UUID")
+	if err != nil {
+		http.Error(w, "No connection ID cookie set", http.StatusUnauthorized)
+		return ""
+	}
+	return uuidCookie.Value
+}
+
 func searchHandler(w http.ResponseWriter, r *http.Request) {
+	connId := getConnId(w, r)
+	if connId == "" {
+		return
+	}
+
+	conn := wrms.GetConn(connId)
+
 	pattern := r.URL.Query().Get("pattern")
 
 	llog.Debug("Searching for %s", pattern)
 
 	start := time.Now()
 	resultsChan := wrms.Player.Search(pattern)
-	results := []Song{}
 
-	for result := range resultsChan {
-		results = append(results, result...)
-	}
+	go func() {
+		for result := range resultsChan {
+			if len(result) > 0 {
+				conn.Send(Event{"search", result})
+			}
+		}
 
-	llog.Debug("searching for %s took %v", pattern, time.Since(start))
+		conn.Send(newNotification("finish-search"))
+		llog.Debug("searching for %s took %v", pattern, time.Since(start))
+	}()
 
-	data, err := json.Marshal(Event{"search", results})
-	if err != nil {
-		llog.Error("Encoding the search result failed with %s", err)
-		return
-	}
-
-	llog.Info("Search returned: %s", string(data))
-	w.Write(data)
+	fmt.Fprintf(w, "Starting search for %s", pattern)
 }
 
 func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
-	uuidCookie, err := r.Cookie("UUID")
-	if err != nil {
-		http.Error(w, "No connection ID cookie set", http.StatusUnauthorized)
+	connId := getConnId(w, r)
+	if connId == "" {
 		return
 	}
-	connId := uuidCookie.Value
 
 	songUri := r.URL.Query().Get("song")
 	llog.Info("%s song %s via url %s", vote, songUri, r.URL)
@@ -131,8 +142,8 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		cancel()
 	}()
 
-	conn := Connection{id, make(chan Event), c}
-	wrms.Connections = append(wrms.Connections, conn)
+	conn := &Connection{id, make(chan Event), c}
+	wrms.Connections[id] = conn
 
 	llog.Info("New websocket connection with id %d", id)
 

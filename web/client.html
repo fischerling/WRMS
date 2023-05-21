@@ -224,6 +224,12 @@
           case "downvoted":
             handleVotes("down", cmd.songs)
             break;
+          case "search":
+            handleSearch(cmd.songs)
+            break;
+          case "finish-search":
+            handleFinishSearch()
+            break;
         }
       };
 
@@ -232,6 +238,10 @@
       };
 
       function submitSearch() {
+        // Clear search Results
+        let searchResults = document.getElementById("searchResults");
+        searchResults.innerHTML = "";
+
         let searchingIndicator = document.getElementById("searching");
         searchingIndicator.style.display = "block";
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
@@ -239,7 +249,7 @@
 
         const form = new FormData(document.getElementById("searchForm"));
         const pattern = new URLSearchParams(form).toString();
-        new HttpClient().get("/search?" + pattern, showSearchResults);
+        new HttpClient().get("/search?" + pattern, console.log);
         return false;
       }
 
@@ -259,20 +269,17 @@
         new HttpClient().post("/add", JSON.stringify(song), console.log);
       }
 
-      function showSearchResults(responseText) {
-        response = JSON.parse(responseText)
-        if (!response)
-          return
-
+      function handleFinishSearch() {
         let searchingIndicator = document.getElementById("searching");
         searchingIndicator.style.display = "none";
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
         searchResultsOverlay['aria-busy'] = false;
+      }
 
+      function handleSearch(songs) {
+        let searchResultsOverlay = document.getElementById("searchResultsOverlay");
         let searchResults = document.getElementById("searchResults");
-        // Clear search Results
-        searchResults.innerHTML = "";
-        for (const song of response.songs) {
+        for (const song of songs) {
           let listItem = document.createElement("li");
           listItem.addEventListener("click", function() {
             addSong(song);
