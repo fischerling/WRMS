@@ -46,7 +46,10 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 func (player *Player) Play(song *Song) {
 	if player.mpv != nil {
 		llog.Debug("Send SIGCONT to mpv subprocess")
-		player.mpv.Process.Signal(syscall.SIGCONT)
+		err := player.mpv.Process.Signal(syscall.SIGCONT)
+		if err != nil {
+			llog.Fatal("Failed to send SIGCONT to mpv")
+		}
 		return
 	}
 
@@ -98,7 +101,10 @@ func (player *Player) PlayData(data io.Reader) {
 func (player *Player) Pause() {
 	if player.mpv != nil {
 		llog.Debug("Send SIGSTOP to mpv subprocess")
-		player.mpv.Process.Signal(syscall.SIGSTOP)
+		err := player.mpv.Process.Signal(syscall.SIGSTOP)
+		if err != nil {
+			llog.Fatal("Failed to send SIGSTOP to mpv")
+		}
 	}
 }
 
