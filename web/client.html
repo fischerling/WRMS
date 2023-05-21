@@ -170,6 +170,11 @@
       }
 
       function handleStop() {
+        // The stop event is only emmited if WRMS is Playing and runs out of songs.
+        // Therefore, we can safely change the button label to Pause since WRMS is playing.
+        // Seeing a stop event before a play event can occur when an admin calls /playpause
+        // with an empty playlist.
+        {{if .IsAdmin}} document.getElementById("ppbutton").innerHTML = 'Pause'; {{end}}
         playing = document.getElementById("playing").innerHTML = "";
       }
 
