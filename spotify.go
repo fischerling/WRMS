@@ -10,7 +10,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -18,6 +17,8 @@ import (
 	"github.com/librespot-org/librespot-golang/librespot"
 	"github.com/librespot-org/librespot-golang/librespot/core"
 	"github.com/librespot-org/librespot-golang/librespot/utils"
+
+	"muhq.space/go/wrms/llog"
 )
 
 const (
@@ -74,7 +75,7 @@ func (spotify *SpotifyBackend) Play(song *Song, player *Player) {
 	// Synchronously load the track
 	audioFile, err := session.Player().LoadTrack(selectedFile, track.GetGid())
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error while loading track: %s\n", err))
+		llog.Fatal("Error while loading track: %s\n", err)
 	}
 
 	player.PlayData(audioFile)
