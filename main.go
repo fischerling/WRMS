@@ -252,6 +252,7 @@ func main() {
 	// wrms.AddSong(NewDummySong("Lala", "SNFMT"))
 	// wrms.AddSong(NewDummySong("Hobelbank", "MC Wankwichtel"))
 
+	llog.Info("Serving http on %d", config.Port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil)
 	llog.Error("Serving http failed with %s", err)
 }
