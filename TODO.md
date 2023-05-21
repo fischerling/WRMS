@@ -1,4 +1,9 @@
+## General
+
+- [X] add admin
+
 ## Fronted
+
 - [X] support incremental search results
   - [ ] distinguish different search queries
 
@@ -17,5 +22,6 @@
 - [X] Fix youtube search
 
 ## Configuration
-- [ ] Implement command line flags
-- [ ] Implement config file support
+
+- [X] Implement command line flags
+- [X] Implement config file support

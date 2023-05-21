@@ -6,11 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"golang.org/x/exp/slices"
 	"muhq.space/go/wrms/llog"
 
 	"github.com/google/uuid"
@@ -22,32 +23,60 @@ var wrms *Wrms
 var pageTemplate *template.Template
 
 func landingPage(w http.ResponseWriter, r *http.Request) {
-	if _, err := r.Cookie("UUID"); err != nil {
-		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: uuid.NewString()})
+	var id uuid.UUID
+	if cookie, err := r.Cookie("UUID"); err != nil {
+		id, err = uuid.NewRandom()
+		if err != nil {
+			llog.Fatal("Failed to generate random uuid: %v", err)
+		}
+
+		http.SetCookie(w, &http.Cookie{Name: "UUID", Value: id.String()})
+	} else {
+		id, err = uuid.Parse(cookie.Value)
+		if err != nil {
+			http.Error(w, "Invalid UUID set in cookie", http.StatusBadRequest)
+			return
+		}
 	}
 
-	if err := pageTemplate.Execute(w, wrms.Config); err != nil {
+	tempData := struct {
+		Config  Config
+		IsAdmin bool
+	}{wrms.Config, wrms.Config.IsAdmin(id)}
+
+	if err := pageTemplate.Execute(w, tempData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func getConnId(w http.ResponseWriter, r *http.Request) string {
+func getConnId(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {
 	uuidCookie, err := r.Cookie("UUID")
 	if err != nil {
 		http.Error(w, "No connection ID cookie set", http.StatusUnauthorized)
-		return ""
+		return uuid.Nil, err
 	}
-	return uuidCookie.Value
+
+	id, err := uuid.Parse(uuidCookie.Value)
+	if err != nil {
+		http.Error(w, "Invalid UUID set in cookie", http.StatusBadRequest)
+		return uuid.Nil, err
+	}
+
+	return id, nil
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-	connId := getConnId(w, r)
-	if connId == "" {
+	connId, err := getConnId(w, r)
+	if err != nil {
 		return
 	}
 
 	conn := wrms.GetConn(connId)
+	if conn == nil {
+		http.Error(w, "No websocket connection found", http.StatusInternalServerError)
+		return
+	}
 
 	pattern := r.URL.Query().Get("pattern")
 
@@ -71,8 +100,8 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {
-	connId := getConnId(w, r)
-	if connId == "" {
+	connId, err := getConnId(w, r)
+	if err != nil {
 		return
 	}
 
@@ -94,7 +123,7 @@ func unvoteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		llog.Warning("Failed to read request body: %s", string(data))
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
@@ -113,6 +142,16 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func playPauseHandler(w http.ResponseWriter, r *http.Request) {
+	connId, err := getConnId(w, r)
+	if err != nil {
+		return
+	}
+
+	if !wrms.Config.IsAdmin(connId) {
+		http.Error(w, "Only admin is allowed to control Playback", http.StatusUnauthorized)
+		return
+	}
+
 	wrms.PlayPause()
 }
 
@@ -168,9 +207,9 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		initialCmds = append(initialCmds, data)
 
 		for _, song := range wrms.Songs {
-			if _, ok := song.Upvotes[id.String()]; ok {
+			if _, ok := song.Upvotes[id]; ok {
 				upvoted = append(upvoted, song)
-			} else if _, ok := song.Downvotes[id.String()]; ok {
+			} else if _, ok := song.Downvotes[id]; ok {
 				downvoted = append(downvoted, song)
 			}
 		}
@@ -231,16 +270,32 @@ func setupRoutes() {
 }
 
 func main() {
-	config := Config{}
+	config := newConfig()
+
 	logLevel := flag.String("loglevel", "Warning", "log level")
-	flag.IntVar(&config.Port, "port", 8080, "port to listen to")
-	flag.StringVar(&config.Backends, "backends", "dummy youtube spotify", "music backend to use")
-	flag.StringVar(&config.LocalMusicDir, "serve-music-dir", "", "local music directory to serve")
-	flag.StringVar(&config.UploadDir, "upload-dir", "uploads/", "directory to upload songs to")
+	flag.IntVar(&config.Port, "port", config.Port, "port to listen to")
+	backends := flag.String("backends", "", "music backend to use")
+	flag.StringVar(&config.LocalMusicDir,
+		"serve-music-dir", config.LocalMusicDir, "local music directory to serve")
+	flag.StringVar(&config.UploadDir, "upload-dir", config.UploadDir, "directory to upload songs to")
+	genAdmin := flag.Bool("generate-admin", false, "generate an admin uuid")
 	flag.Parse()
 
+	if *backends != "" {
+		config.Backends = strings.Split(*backends, " ")
+	}
+
+	if *genAdmin {
+		var err error
+		config.Admin, err = uuid.NewRandom()
+		if err != nil {
+			llog.Fatal("Failed to create random UUID: %v", err)
+		}
+		llog.Info("Admin uuid: %v", config.Admin)
+	}
+
 	llog.SetLogLevelFromString(*logLevel)
-	config.HasUpload = strings.Contains(config.Backends, "upload")
+	config.HasUpload = slices.Contains(config.Backends, "upload")
 
 	wrms = NewWrms(config)
 	defer wrms.Close()

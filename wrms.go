@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"strings"
 
 	"muhq.space/go/wrms/llog"
 
@@ -12,18 +11,18 @@ import (
 )
 
 type Song struct {
-	Title     string              `json:"title"`
-	Artist    string              `json:"artist"`
-	Source    string              `json:"source"`
-	Uri       string              `json:"uri"`
-	Weight    int                 `json:"weight"`
-	index     int                 `json:"-"` // used by heap.Interface
-	Upvotes   map[string]struct{} `json:"-"`
-	Downvotes map[string]struct{} `json:"-"`
+	Title     string                 `json:"title"`
+	Artist    string                 `json:"artist"`
+	Source    string                 `json:"source"`
+	Uri       string                 `json:"uri"`
+	Weight    int                    `json:"weight"`
+	index     int                    `json:"-"` // used by heap.Interface
+	Upvotes   map[uuid.UUID]struct{} `json:"-"`
+	Downvotes map[uuid.UUID]struct{} `json:"-"`
 }
 
 func NewSong(title, artist, source, uri string) Song {
-	return Song{title, artist, source, uri, 0, 0, map[string]struct{}{}, map[string]struct{}{}}
+	return Song{title, artist, source, uri, 0, 0, map[uuid.UUID]struct{}{}, map[uuid.UUID]struct{}{}}
 }
 
 func NewSongFromJson(data []byte) (Song, error) {
@@ -34,8 +33,8 @@ func NewSongFromJson(data []byte) (Song, error) {
 		return s, err
 	}
 
-	s.Upvotes = map[string]struct{}{}
-	s.Downvotes = map[string]struct{}{}
+	s.Upvotes = map[uuid.UUID]struct{}{}
+	s.Downvotes = map[uuid.UUID]struct{}{}
 	return s, nil
 }
 
@@ -78,17 +77,12 @@ func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
 	wrms.Config = config
 	wrms.Connections = make(map[uuid.UUID]*Connection)
-	wrms.Player = NewPlayer(&wrms, strings.Split(config.Backends, " "))
+	wrms.Player = NewPlayer(&wrms, config.Backends)
 	return &wrms
 }
 
-func (wrms *Wrms) GetConn(connId string) *Connection {
-	id, err := uuid.Parse(connId)
-	if err != nil {
-		llog.Fatal("Failed to parse connId %s: %v", connId, err)
-	}
-
-	return wrms.Connections[id]
+func (wrms *Wrms) GetConn(connId uuid.UUID) *Connection {
+	return wrms.Connections[connId]
 }
 
 func (wrms *Wrms) Close() {
@@ -158,7 +152,7 @@ func (wrms *Wrms) PlayPause() {
 	wrms.Broadcast(ev)
 }
 
-func (wrms *Wrms) AdjustSongWeight(connId string, songUri string, vote string) {
+func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string) {
 	for i := 0; i < len(wrms.Songs); i++ {
 		s := &wrms.Songs[i]
 		if s.Uri != songUri {

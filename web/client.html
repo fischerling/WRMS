@@ -72,6 +72,7 @@
         }
       }
 
+      let isAdmin = false;
       let songs = [];
       let playing = {};
       let votes = new Map();
@@ -165,16 +166,16 @@
       }
 
       function handlePause() {
-        document.getElementById("ppbutton").innerHTML = 'Play';
+        {{if .IsAdmin}} document.getElementById("ppbutton").innerHTML = 'Play'; {{end}}
       }
 
       function handleStop() {
-        document.getElementById("ppbutton").innerHTML = 'Play';
+        {{if .IsAdmin}} document.getElementById("ppbutton").innerHTML = 'Play'; {{end}}
         playing = document.getElementById("playing").innerHTML = "";
       }
 
       function handlePlay(currentSong) {
-        document.getElementById("ppbutton").innerHTML = 'Pause';
+        {{if .IsAdmin}} document.getElementById("ppbutton").innerHTML = 'Pause'; {{end}}
 
         idx = -1;
         songs.forEach(function(s, i, a) { if (s.uri == currentSong.uri) idx = i; });
@@ -256,7 +257,7 @@
         return false;
       }
 
-      {{if .HasUpload}}
+      {{if .Config.HasUpload}}
       function submitUpload() {
         const form = new FormData(document.getElementById("uploadForm"));
         const file = form.get("song");
@@ -314,7 +315,7 @@
         <button id="searchButton">Search</button>
       </form>
 
-      {{if .HasUpload}}
+      {{if .Config.HasUpload}}
       <form id="uploadForm" onsubmit="return submitUpload()">
         <input id="uploadInput" name="song" type="file">
         <button id="uploadButton", type="submit">Upload</button>
@@ -333,9 +334,11 @@
 
     <h2>Playing</h2>
     <p id='playing'></p>
+    {{if .IsAdmin}}
     <div id='controls'>
       <button id="ppbutton">Play</button>
     </div>
+    {{end}}
 
     <h2>Playlist</h2>
     <ul id='playlist'></ul>

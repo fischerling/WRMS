@@ -25,23 +25,30 @@ const (
 	deviceName = "wrms"
 )
 
+type spotifyConfig struct {
+	username string
+	password string
+}
+
 type SpotifyBackend struct {
 	session *core.Session
 }
 
-func NewSpotify() (*SpotifyBackend, error) {
+func NewSpotify(config *spotifyConfig) (*SpotifyBackend, error) {
 	spotify := SpotifyBackend{}
+	if config != nil {
+		config = &spotifyConfig{}
+	}
 
-	var err error
+	config.username = os.Getenv("WRMS_SPOTIFY_USER")
+	config.password = os.Getenv("WRMS_SPOTIFY_PASSWORD")
 
-	username := os.Getenv("WRMS_SPOTIFY_USER")
-	password := os.Getenv("WRMS_SPOTIFY_PASSWORD")
-	if username == "" || password == "" {
+	if config.username == "" || config.password == "" {
 		return nil, errors.New("User and password for spotify must be provided")
 	}
 
-	spotify.session, err = librespot.Login(username, password, deviceName)
-
+	var err error
+	spotify.session, err = librespot.Login(config.username, config.password, deviceName)
 	if err != nil {
 		return nil, err
 	}
