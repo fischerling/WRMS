@@ -94,11 +94,11 @@ func (b *LocalBackend) findSongs() {
 		}
 
 		f, err := os.Open(p)
-		defer f.Close()
 		if err != nil {
 			llog.Warning("error %v opening file %s", err, p)
 			return err
 		}
+		defer f.Close()
 
 		m, err := tag.ReadFrom(f)
 		if err != nil {
