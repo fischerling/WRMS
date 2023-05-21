@@ -1,6 +1,8 @@
 ## General
 
 - [X] add admin
+  - [ ] allow admin to delete songs
+- [ ] continue playback when song is added to empty playlist
 
 ## Fronted
 
