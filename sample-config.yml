@@ -1,0 +1,13 @@
+backends:
+#  - upload
+#  - youtube
+#  - spotify
+#  - local
+
+# music-dir: /path/to/your/music
+
+# upload-dir: /tmp/wrms/uploads
+
+#spotify:
+#  username: "your spotify user"
+#  password: "your spotify password"
