@@ -237,6 +237,18 @@
         return false;
       }
 
+      {{if .HasUpload}}
+      function submitUpload() {
+        const form = new FormData(document.getElementById("uploadForm"));
+        const file = form.get("song");
+        const params = new URLSearchParams();
+        params.append("song", file.name);
+        const song = params.toString();
+        new HttpClient().post("/upload?" + song, file, console.log);
+        return false;
+      }
+      {{end}}
+
       function addSong(song) {
         new HttpClient().post("/add", JSON.stringify(song), console.log);
       }
@@ -282,6 +294,13 @@
         <input id="searchInput" name="pattern" type="text" value="Title/Artist/Album/...">
         <button id="searchButton">Search</button>
       </form>
+
+      {{if .HasUpload}}
+      <form id="uploadForm" onsubmit="return submitUpload()">
+        <input id="uploadInput" name="song" type="file">
+        <button id="uploadButton", type="submit">Upload</button>
+      </form>
+      {{end}}
     </div>
 
     <div id="searchResultsOverlay" style="display: none;">

@@ -28,7 +28,9 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 		case "dummy":
 			b = &DummyBackend{}
 		case "local":
-			b = NewLocalBackend(wrms.Config.localMusicDir)
+			b = NewLocalBackend(wrms.Config.LocalMusicDir)
+		case "upload":
+			b = NewUploadBackend(wrms.Config.UploadDir)
 		default:
 			llog.Error("Not supported backend %s", backend)
 		}

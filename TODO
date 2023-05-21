@@ -6,7 +6,10 @@
 
 ## Backends
 
+- [ ] Split paralyze search
 - [X] Implement local storage backend
+  - [X] Implement upload
+    - [ ] Remove uploaded songs after were played
 - [X] Fix youtube search
 
 ## Configuration
