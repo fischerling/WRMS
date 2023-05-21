@@ -23,7 +23,7 @@ func NewUploadBackend(uploadDir string) *UploadBackend {
 	dirInfo, err := os.Stat(uploadDir)
 
 	if os.IsNotExist(err) {
-		os.Mkdir(uploadDir, 0750)
+		os.MkdirAll(uploadDir, 0750)
 	} else if !dirInfo.IsDir() {
 		llog.Fatal("upload directory %s exists and is not a directory", uploadDir)
 	}
