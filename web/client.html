@@ -232,6 +232,11 @@
       };
 
       function submitSearch() {
+        let searchingIndicator = document.getElementById("searching");
+        searchingIndicator.style.display = "block";
+        let searchResultsOverlay = document.getElementById("searchResultsOverlay");
+        searchResultsOverlay['aria-busy'] = true;
+
         const form = new FormData(document.getElementById("searchForm"));
         const pattern = new URLSearchParams(form).toString();
         new HttpClient().get("/search?" + pattern, showSearchResults);
@@ -259,7 +264,10 @@
         if (!response)
           return
 
+        let searchingIndicator = document.getElementById("searching");
+        searchingIndicator.style.display = "none";
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
+        searchResultsOverlay['aria-busy'] = false;
 
         let searchResults = document.getElementById("searchResults");
         // Clear search Results
@@ -304,7 +312,8 @@
       {{end}}
     </div>
 
-    <div id="searchResultsOverlay" style="display: none;">
+    <progress id="searching" aria-label="Searching" style="display: none;"></progress>
+    <div id="searchResultsOverlay" style="display: none;" aria-busy="true" aria-describedby="searching">
       <ul id="searchResults">
       </ul>
     </div>
