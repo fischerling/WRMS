@@ -28,7 +28,7 @@ type YoutubeDlSearchResult struct {
 func (b *YoutubeBackend) Search(pattern string) []Song {
 	searchOption := fmt.Sprintf("ytsearch%d:%s", b.searchResults, pattern)
 	llog.Debug("Search youtube using: youtube-dl -j %s", searchOption)
-	results, err := exec.Command("youtube-dl", "-j", searchOption).Output()
+	results, err := exec.Command("yt-dlp", "-j", searchOption).Output()
 
 	if err != nil {
 		llog.Error("youtube-dl failed with: %s", err)

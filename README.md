@@ -59,7 +59,7 @@ The spotify username and password are provided using the environment variables
 
 ### youtube
 
-The `youtube` backend uses youtube-dl to search youtube and in combination with
+The `youtube` backend uses yt-dlp to search youtube and in combination with
 mpv to play the selected youtube videos.
 
 ### dummy
