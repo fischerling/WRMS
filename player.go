@@ -80,7 +80,7 @@ func (player *Player) runMpv() {
 const MPV_FLAGS = "--no-video"
 
 func mpvArgv(uri string) []string {
-	cmd := []string{"mpv", uri}
+	cmd := []string{uri}
 	cmd = append(cmd, strings.Split(MPV_FLAGS, " ")...)
 	cmd = append(cmd, strings.Split(wrms.Config.MpvFlags, " ")...)
 	return cmd
