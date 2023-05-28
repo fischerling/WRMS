@@ -9,7 +9,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 
@@ -68,16 +67,14 @@ func (_ *SpotifyBackend) OnSongFinished(*Song) {}
 func (spotify *SpotifyBackend) Play(song *Song, player *Player) {
 	trackID := song.Uri
 	session := spotify.session
-	fmt.Println("Loading track for play: ", trackID)
+	llog.Debug("Loading track for play: %v", trackID)
 
 	// Get the track metadata: it holds information about which files and encodings are available
 	track, err := session.Mercury().GetTrack(utils.Base62ToHex(trackID))
 	if err != nil {
-		fmt.Println("Error loading track: ", err)
+		llog.Error("Error loading track: %s", err)
 		return
 	}
-
-	fmt.Println("Track:", track.GetName())
 
 	// For now, select the OGG 160kbps variant of the track. The "high quality"
 	// setting in the official Spotify app is the OGG 320kbps variant.
@@ -102,26 +99,26 @@ func (spotify *SpotifyBackend) Search(keyword string) []Song {
 	resp, err := session.Mercury().Search(keyword, 12, session.Country(), session.Username())
 
 	if err != nil {
-		fmt.Println("Failed to search:", err)
+		llog.Error("Failed to search: %s", err)
 		return []Song{}
 	}
 
 	res := resp.Results
 
-	fmt.Println("Search results for ", keyword)
-	fmt.Println("=============================")
+	llog.DDebug("Search results for %s", keyword)
+	llog.DDebug("=============================")
 
 	if res.Error != nil {
-		fmt.Println("Search result error:", res.Error)
+		llog.Error("Search result error: %s", res.Error)
 	}
 
-	fmt.Printf("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
+	llog.Debug("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
 
 	results := []Song{}
 	for _, track := range res.Tracks.Hits {
 		uriParts := strings.Split(track.Uri, ":")
-		results = append(results, NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts)-1]))
-		// fmt.Printf(" => %v (%s)\n", track, track.Uri)
+		results = append(results, NewSong(track.Name, track.Artists[0].Name,
+			"spotify", uriParts[len(uriParts)-1]))
 	}
 
 	return results
