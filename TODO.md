@@ -2,6 +2,7 @@
 
 - [X] add admin
   - [ ] allow admin to delete songs
+  - [ ] allow admin to skip songs
 - [X] continue playback when song is added to empty playlist
 
 ## Fronted
@@ -12,7 +13,7 @@
 
 ## Web Backend
 
-- [ ] Implement a event endpoint
+- [ ] Implement an event endpoint
 
 ## Backends
 
@@ -23,6 +24,9 @@
   - [X] Implement upload
     - [X] Remove uploaded songs after they were played
 - [X] Fix youtube search
+- [ ] Support loading playlists
+  - [ ] m3u
+  - [ ] spotify playlist
 
 ## Configuration
 
