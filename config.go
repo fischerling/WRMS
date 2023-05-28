@@ -16,6 +16,7 @@ type Config struct {
 	LocalMusicDir string         `yaml:"music-dir"`
 	UploadDir     string         `yaml:"upload-dir"`
 	LogLevel      string         `yaml:"loglevel"`
+	MpvFlags      string         `yaml:"mpv_flags"`
 	Admin         uuid.UUID      `yaml:"admin"`
 	Spotify       *SpotifyConfig `yaml:"spotify"`
 	HasUpload     bool

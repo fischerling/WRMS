@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -76,9 +77,18 @@ func (player *Player) runMpv() {
 	wrms.Next()
 }
 
+const MPV_FLAGS = "--no-video"
+
 func (player *Player) PlayUri(uri string) {
 	llog.Info("Start mpv with %s", uri)
-	player.mpv = exec.Command("mpv", "--no-video", uri)
+	cmd := []string{"mpv", uri}
+
+	cmd = append(cmd, strings.Split(MPV_FLAGS, " ")...)
+
+	cmd = append(cmd, strings.Split(wrms.Config.MpvFlags, " ")...)
+
+	llog.Debug("Running '%s'", strings.Join(cmd, " "))
+	player.mpv = exec.Command("mpv", cmd...)
 	go player.runMpv()
 }
 
