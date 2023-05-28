@@ -55,17 +55,28 @@ func (b *UploadBackend) upload(w http.ResponseWriter, r *http.Request) {
 
 	f.Close()
 
-	var song Song
+	var title string
+	var artist string
+
 	dataReader := bytes.NewReader(data)
 	m, err := tag.ReadFrom(dataReader)
+
 	if err != nil {
 		llog.Warning("error reading tags from %s: %v", fileName, err)
-		song = NewSong(fileName, "Unknown", "upload", fileName)
 	} else {
-		song = NewSong(m.Title(), m.Artist(), "upload", fileName)
+		title = m.Title()
+		artist = m.Artist()
 	}
 
-	wrms.AddSong(song)
+	if title == "" {
+		title = fileName
+	}
+
+	if artist == "" {
+		artist = "Unknown"
+	}
+
+	wrms.AddSong(NewSong(title, artist, "upload", fileName))
 	fmt.Fprintf(w, "Added uploaded song %s", string(fileName))
 }
 
