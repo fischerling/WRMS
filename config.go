@@ -23,7 +23,7 @@ type Config struct {
 }
 
 func defaultConfig() Config {
-	c := Config{Port: 8080, UploadDir: "upload", LogLevel: "Info"}
+	c := Config{Port: 8080, UploadDir: "uploads", LogLevel: "Info"}
 	return c
 }
 
