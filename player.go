@@ -95,7 +95,7 @@ func (player *Player) startMpv(uri string) {
 	llog.Info("Start mpv to play %s", uri)
 
 	cmd := mpvArgv(uri)
-	llog.Debug("Running '%s'", strings.Join(cmd, " "))
+	llog.Debug("Running 'mpv %s'", strings.Join(cmd, " "))
 	player.mpv = exec.Command("mpv", cmd...)
 }
 
