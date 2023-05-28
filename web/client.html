@@ -323,7 +323,7 @@
 
       {{if .Config.HasUpload}}
       <form id="uploadForm" onsubmit="return submitUpload()">
-        <input id="uploadInput" name="song" type="file">
+        <input id="uploadInput" name="song" type="file", accept="audio/*">
         <button id="uploadButton", type="submit">Upload</button>
       </form>
       {{end}}
