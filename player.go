@@ -61,9 +61,10 @@ func (player *Player) Play(song *Song) {
 }
 
 func (player *Player) runMpv() {
-	_, err := player.mpv.CombinedOutput()
+	output, err := player.mpv.CombinedOutput()
 	if err != nil {
-		llog.Fatal(err.Error())
+		llog.Debug("Mpv output: %s", output)
+		llog.Fatal("Mpv failed with: %s", err.Error())
 	}
 
 	wrms := player.wrms
