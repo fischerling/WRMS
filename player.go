@@ -79,35 +79,42 @@ func (player *Player) runMpv() {
 
 const MPV_FLAGS = "--no-video"
 
-func (player *Player) PlayUri(uri string) {
-	llog.Info("Start mpv with %s", uri)
+func mpvArgv(uri string) []string {
 	cmd := []string{"mpv", uri}
-
 	cmd = append(cmd, strings.Split(MPV_FLAGS, " ")...)
-
 	cmd = append(cmd, strings.Split(wrms.Config.MpvFlags, " ")...)
+	return cmd
+}
 
+func (player *Player) startMpv(uri string) {
+	if player.mpv != nil {
+		llog.Fatal("Player has already an mpv subprocess")
+	}
+	llog.Info("Start mpv to play %s", uri)
+
+	cmd := mpvArgv(uri)
 	llog.Debug("Running '%s'", strings.Join(cmd, " "))
 	player.mpv = exec.Command("mpv", cmd...)
+}
+
+func (player *Player) PlayUri(uri string) {
+	player.startMpv(uri)
 	go player.runMpv()
 }
 
 func (player *Player) PlayData(data io.Reader) {
-	if player.mpv != nil {
-		llog.Fatal("Player has already an mpv subprocess")
-	}
+	player.startMpv("-")
 
-	player.mpv = exec.Command("mpv", "-")
 	stdin, err := player.mpv.StdinPipe()
 	if err != nil {
-		llog.Fatal(err.Error())
+		llog.Fatal("Connecting to mpv Pipe failed: %v", err)
 	}
 
 	go func() {
 		defer stdin.Close()
 
 		if _, err := io.Copy(stdin, data); err != nil {
-			llog.Fatal("Failed to write song data to mpv (%v)", err)
+			llog.Fatal("Failed to write song data to mpv: %v", err)
 		}
 	}()
 
