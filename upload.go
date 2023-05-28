@@ -45,12 +45,12 @@ func (b *UploadBackend) upload(w http.ResponseWriter, r *http.Request) {
 
 	f, err := os.Create(path.Join(b.uploadDir, fileName))
 	if err != nil {
-		llog.Fatal("Failed to create uploaded song on disk")
+		llog.Fatal("Failed to create uploaded song on disk: %s", err)
 	}
 
 	_, err = f.Write(data)
 	if err != nil {
-		llog.Fatal("Failed to write uploaded song on disk")
+		llog.Fatal("Failed to write uploaded song on disk: %s", err)
 	}
 
 	f.Close()
