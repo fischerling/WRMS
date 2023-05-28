@@ -82,7 +82,9 @@ const MPV_FLAGS = "--no-video"
 func mpvArgv(uri string) []string {
 	cmd := []string{uri}
 	cmd = append(cmd, strings.Split(MPV_FLAGS, " ")...)
-	cmd = append(cmd, strings.Split(wrms.Config.MpvFlags, " ")...)
+	if wrms.Config.MpvFlags != "" {
+		cmd = append(cmd, strings.Split(wrms.Config.MpvFlags, " ")...)
+	}
 	return cmd
 }
 
