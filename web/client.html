@@ -83,6 +83,12 @@
         return song.title
       }
 
+      function newSourceLabel(song) {
+         const sourceLabel = document.createElement("SMALL");
+         sourceLabel.appendChild(document.createTextNode(" (" + song.source + ")"));
+         return sourceLabel;
+      }
+
       function renderPlaylist() {
         playlist = document.getElementById("playlist");
         playlist.innerHTML = "";
@@ -139,9 +145,7 @@
           listItem.appendChild(downvoteBtn);
 
           listItem.appendChild(document.createTextNode(song.weight + ' ' + formatSong(song)));
-          const sourceLabel = document.createElement("SMALL");
-          sourceLabel.innerHTML = " (" + song.source + ")";
-          listItem.appendChild(sourceLabel);
+          listItem.appendChild(newSourceLabel(song));
           playlist.appendChild(listItem);
         }
       }
@@ -295,7 +299,8 @@
           });
 
           listItem.classList.add("searchResult")
-          listItem.innerHTML = formatSong(song) + " <small>(" + song.source + ")</small>";
+          listItem.appendChild(document.createTextNode(formatSong(song)));
+          listItem.appendChild(newSourceLabel(song));
           searchResults.appendChild(listItem);
         }
 

@@ -6,6 +6,7 @@
 
 ## Fronted
 
+- [X] escape HTML 
 - [X] support incremental search results
   - [ ] distinguish different search queries
 
