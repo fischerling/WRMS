@@ -127,6 +127,8 @@ func (wrms *Wrms) Next() {
 		return
 	}
 
+	wrms.CurrentSong = *next
+
 	llog.Info("popped next song and removing it from the song list %v", next)
 
 	for i, s := range wrms.Songs {
@@ -137,7 +139,6 @@ func (wrms *Wrms) Next() {
 		}
 	}
 
-	wrms.CurrentSong = *next
 	if wrms.Playing {
 		wrms.startPlaying()
 	}
