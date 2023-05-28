@@ -11,3 +11,5 @@ backends:
 #spotify:
 #  username: "your spotify user"
 #  password: "your spotify password"
+
+#loglevel: Debug

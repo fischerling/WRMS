@@ -15,13 +15,14 @@ type Config struct {
 	Backends      []string       `yaml:"backends"`
 	LocalMusicDir string         `yaml:"music-dir"`
 	UploadDir     string         `yaml:"upload-dir"`
+	LogLevel      string         `yaml:"loglevel"`
 	Admin         uuid.UUID      `yaml:"admin"`
 	Spotify       *SpotifyConfig `yaml:"spotify"`
 	HasUpload     bool
 }
 
 func defaultConfig() Config {
-	c := Config{Port: 8080, UploadDir: "upload"}
+	c := Config{Port: 8080, UploadDir: "upload", LogLevel: "Info"}
 	return c
 }
 

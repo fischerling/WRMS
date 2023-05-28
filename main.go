@@ -271,7 +271,7 @@ func setupRoutes() {
 func main() {
 	config := newConfig()
 
-	logLevel := flag.String("loglevel", "Warning", "log level")
+	flag.StringVar(&config.LogLevel, "loglevel", config.LogLevel, "log level")
 	flag.IntVar(&config.Port, "port", config.Port, "port to listen to")
 	backends := flag.String("backends", "", "music backend to use")
 	flag.StringVar(&config.LocalMusicDir,
@@ -293,7 +293,7 @@ func main() {
 		llog.Info("Admin uuid: %v", config.Admin)
 	}
 
-	llog.SetLogLevelFromString(*logLevel)
+	llog.SetLogLevelFromString(config.LogLevel)
 	config.HasUpload = slices.Contains(config.Backends, "upload")
 
 	wrms = NewWrms(config)
