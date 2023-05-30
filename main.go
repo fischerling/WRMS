@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -79,6 +80,16 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pattern := r.URL.Query().Get("pattern")
+	if pattern == "" {
+		http.Error(w, "No search pattern provided", http.StatusBadRequest)
+		return
+	}
+
+	id, ok := strconv.Atoi(r.URL.Query().Get("id"))
+	if ok != err {
+		http.Error(w, "No or invalid search id provided", http.StatusBadRequest)
+		return
+	}
 
 	llog.Debug("Searching for %s", pattern)
 
@@ -88,11 +99,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for result := range resultsChan {
 			if len(result) > 0 {
-				conn.Send(Event{"search", result})
+				conn.Send(newSearchResultEvent(id, result))
 			}
 		}
 
-		conn.Send(newNotification("finish-search"))
+		conn.Send(Event{Event: "finish-search", Id: id})
 		llog.Debug("searching for %s took %v", pattern, time.Since(start))
 	}()
 
@@ -187,7 +198,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	initialCmds := [][]byte{}
 	if wrms.Playing {
-		data, err := json.Marshal(Event{"play", []Song{wrms.CurrentSong}})
+		data, err := json.Marshal(newEvent("play", []Song{wrms.CurrentSong}))
 		if err != nil {
 			llog.Error("Encoding the play event failed with %s", err)
 			return
@@ -198,7 +209,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	upvoted := []Song{}
 	downvoted := []Song{}
 	if len(wrms.Songs) > 0 {
-		data, err := json.Marshal(Event{"add", wrms.Songs})
+		data, err := json.Marshal(newEvent("add", wrms.Songs))
 		if err != nil {
 			llog.Error("Encoding the add event failed with %s", err)
 			return
@@ -215,7 +226,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(upvoted) > 0 {
-		data, err := json.Marshal(Event{"upvoted", upvoted})
+		data, err := json.Marshal(newEvent("upvoted", upvoted))
 		if err != nil {
 			llog.Error("Encoding the upvoted event failed with %s", err)
 			return
@@ -224,7 +235,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(downvoted) > 0 {
-		data, err := json.Marshal(Event{"downvoted", downvoted})
+		data, err := json.Marshal(newEvent("downvoted", downvoted))
 		if err != nil {
 			llog.Error("Encoding the upvoted event failed with %s", err)
 			return

@@ -9,7 +9,7 @@
 
 - [X] escape HTML 
 - [X] support incremental search results
-  - [ ] distinguish different search queries
+  - [X] distinguish different search queries
 
 ## Web Backend
 

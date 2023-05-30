@@ -73,6 +73,7 @@
       }
 
       let isAdmin = false;
+      let searchId = 0;
       let songs = [];
       let playing = {};
       let votes = new Map();
@@ -237,10 +238,10 @@
             handleVotes("down", cmd.songs)
             break;
           case "search":
-            handleSearch(cmd.songs)
+            handleSearch(cmd.id, cmd.songs)
             break;
           case "finish-search":
-            handleFinishSearch()
+            handleFinishSearch(cmd.id)
             break;
         }
       };
@@ -250,9 +251,7 @@
       };
 
       function submitSearch() {
-        // Clear search Results
-        let searchResults = document.getElementById("searchResults");
-        searchResults.innerHTML = "";
+        resetSearch();
 
         let searchingIndicator = document.getElementById("searching");
         searchingIndicator.style.display = "block";
@@ -260,8 +259,9 @@
         searchResultsOverlay['aria-busy'] = true;
 
         const form = new FormData(document.getElementById("searchForm"));
-        const pattern = new URLSearchParams(form).toString();
-        new HttpClient().get("/search?" + pattern, console.log);
+        const urlParams = new URLSearchParams(form);
+        urlParams.append("id", searchId);
+        new HttpClient().get("/search?" + urlParams.toString(), console.log);
         return false;
       }
 
@@ -281,21 +281,27 @@
         new HttpClient().post("/add", JSON.stringify(song), console.log);
       }
 
-      function handleFinishSearch() {
+      function handleFinishSearch(id) {
+        // Ignore stale finish search notifications
+        if (id < searchId) { return; }
+
         let searchingIndicator = document.getElementById("searching");
         searchingIndicator.style.display = "none";
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
         searchResultsOverlay['aria-busy'] = false;
+        searchId += 1;
       }
 
-      function handleSearch(songs) {
+      function handleSearch(id, songs) {
+        // Ignore stale search results
+        if (id < searchId) { return; }
+
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
         let searchResults = document.getElementById("searchResults");
         for (const song of songs) {
           let listItem = document.createElement("li");
           listItem.addEventListener("click", function() {
             addSong(song);
-            searchResultsOverlay.style.display = "none";
           });
 
           listItem.classList.add("searchResult")
@@ -306,6 +312,14 @@
 
         // Show search result overlay
         searchResultsOverlay.style.display = "block";
+      }
+
+      function resetSearch() {
+        // Clear search Results
+        let searchResults = document.getElementById("searchResults");
+        searchResults.innerHTML = "";
+
+        searchId += 1;
       }
 
       window.onload = function() {

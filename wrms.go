@@ -40,11 +40,20 @@ func NewSongFromJson(data []byte) (Song, error) {
 
 type Event struct {
 	Event string `json:"cmd"`
+	Id    int    `json:"id"`
 	Songs []Song `json:"songs"`
 }
 
+func newEvent(event string, songs []Song) Event {
+	return Event{Event: event, Songs: songs}
+}
+
 func newNotification(notification string) Event {
-	return Event{notification, nil}
+	return Event{Event: notification}
+}
+
+func newSearchResultEvent(id int, songs []Song) Event {
+	return Event{Event: "search", Id: id, Songs: songs}
 }
 
 type Connection struct {
@@ -100,7 +109,7 @@ func (wrms *Wrms) Broadcast(ev Event) {
 }
 
 func (wrms *Wrms) startPlaying() {
-	wrms.Broadcast(Event{"play", []Song{wrms.CurrentSong}})
+	wrms.Broadcast(newEvent("play", []Song{wrms.CurrentSong}))
 	wrms.Player.Play(&wrms.CurrentSong)
 }
 
@@ -110,7 +119,7 @@ func (wrms *Wrms) AddSong(song Song) {
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
 	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
-	wrms.Broadcast(Event{"add", []Song{song}})
+	wrms.Broadcast(newEvent("add", []Song{song}))
 
 	if startPlayingAgain {
 		wrms.Next()
@@ -218,7 +227,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 		}
 
 		wrms.queue.Adjust(s)
-		wrms.Broadcast(Event{"update", []Song{*s}})
+		wrms.Broadcast(newEvent("update", []Song{*s}))
 		break
 	}
 }
