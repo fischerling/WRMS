@@ -50,6 +50,11 @@ The default value is `dummy youtube spotify`.
 The `local` backend allows WRMS to play songs from a local path.
 To serve local songs pass the `-serve-music-dir <path>` flag to WRMS.
 
+### upload
+
+The `upload` backend allows clients to upload songs via the web frontend.
+Uploaded songs are stored in the `upload-dir` directory (default: `uploads`).
+
 ### spotify
 
 The `spotify` backend requires a spotify premium account to serve songs from
