@@ -56,3 +56,8 @@ func (pl *Playlist) Adjust(s *Song) {
 	heap.Fix(pl, s.index)
 	llog.DDebug("adjusting song %p in the playlist (%p) -> %v", s, pl, pl)
 }
+
+func (pl *Playlist) RemoveSong(s *Song) {
+	heap.Remove(pl, s.index)
+	llog.DDebug("removing song %p in the playlist (%p) -> %v", s, pl, pl)
+}

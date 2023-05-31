@@ -151,18 +151,47 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Added song %s", string(data))
 }
 
-func playPauseHandler(w http.ResponseWriter, r *http.Request) {
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	connId, err := getConnId(w, r)
 	if err != nil {
 		return
 	}
 
 	if !wrms.Config.IsAdmin(connId) {
-		http.Error(w, "Only admin is allowed to control Playback", http.StatusUnauthorized)
+		http.Error(w, "Only admins are allowed to delete songs", http.StatusUnauthorized)
 		return
 	}
 
-	wrms.PlayPause()
+	songUri := r.URL.Query().Get("song")
+	llog.Info("Delete song %s via url %s", songUri, r.URL)
+	wrms.DeleteSong(songUri)
+}
+
+func genericControlHandler(w http.ResponseWriter, r *http.Request, cmd string) {
+	connId, err := getConnId(w, r)
+	if err != nil {
+		return
+	}
+
+	if !wrms.Config.IsAdmin(connId) {
+		http.Error(w, "Only admins are allowed to control playback", http.StatusUnauthorized)
+		return
+	}
+
+	switch cmd {
+	case "playpause":
+		wrms.PlayPause()
+	case "next":
+		wrms.Next()
+	}
+}
+
+func playPauseHandler(w http.ResponseWriter, r *http.Request) {
+	genericControlHandler(w, r, "playpause")
+}
+
+func nextHandler(w http.ResponseWriter, r *http.Request) {
+	genericControlHandler(w, r, "next")
 }
 
 func wsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -275,6 +304,8 @@ func setupRoutes() {
 	http.HandleFunc("/down", downHandler)
 	http.HandleFunc("/unvote", unvoteHandler)
 	http.HandleFunc("/add", addHandler)
+	http.HandleFunc("/delete", deleteHandler)
+	http.HandleFunc("/next", nextHandler)
 	http.HandleFunc("/playpause", playPauseHandler)
 	http.HandleFunc("/ws", wsEndpoint)
 }

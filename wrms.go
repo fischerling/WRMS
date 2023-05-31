@@ -126,6 +126,22 @@ func (wrms *Wrms) AddSong(song Song) {
 	}
 }
 
+func (wrms *Wrms) DeleteSong(songUri string) {
+	for i := 0; i < len(wrms.Songs); i++ {
+		s := &wrms.Songs[i]
+		if s.Uri != songUri {
+			continue
+		}
+
+		wrms.Songs[i] = wrms.Songs[len(wrms.Songs)-1]
+		wrms.Songs = wrms.Songs[:len(wrms.Songs)-1]
+
+		wrms.queue.RemoveSong(s)
+		wrms.Broadcast(newEvent("delete", []Song{*s}))
+		break
+	}
+}
+
 func (wrms *Wrms) Next() {
 	llog.DDebug("Next Song")
 

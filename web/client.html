@@ -147,12 +147,31 @@
 
           listItem.appendChild(document.createTextNode(song.weight + ' ' + formatSong(song)));
           listItem.appendChild(newSourceLabel(song));
+          {{if .IsAdmin}}
+          let delBtn = document.createElement("button");
+          delBtn.style.marginLeft = 10 + "px";
+          delBtn.appendChild(document.createTextNode("delete"));
+          delBtn.addEventListener("click", function() {
+            const params = new URLSearchParams();
+            params.append("song", song.uri)
+            new HttpClient().get("/delete?" + params.toString(), console.log);
+          });
+          listItem.appendChild(delBtn);
+          {{end}}
           playlist.appendChild(listItem);
         }
       }
 
       function handleAdd(added) {
         songs = songs.concat(added);
+        renderPlaylist();
+      }
+
+      function handleDelete(deleted) {
+        for (const deletedSong of deleted) {
+          const index = songs.findIndex(function(s) {return s.uri == deletedSong.uri});
+          if (index > -1) { songs.splice(index, 1); }
+        }
         renderPlaylist();
       }
 
@@ -218,6 +237,9 @@
         switch (cmd.cmd) {
           case "add":
             handleAdd(cmd.songs)
+            break;
+          case "delete":
+            handleDelete(cmd.songs)
             break;
           case "update":
             handleUpdate(cmd.songs)
@@ -327,6 +349,10 @@
         document.getElementById("ppbutton").addEventListener("click", function() {
           new HttpClient().get("/playpause", console.log);
         });
+
+        document.getElementById("nextbutton").addEventListener("click", function() {
+          new HttpClient().get("/next", console.log);
+        });
         {{end}}
       }
     </script>
@@ -362,6 +388,7 @@
     {{if .IsAdmin}}
     <div id='controls'>
       <button id="ppbutton">Play</button>
+      <button id="nextbutton">Next</button>
     </div>
     {{end}}
 
