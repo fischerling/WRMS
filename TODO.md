@@ -23,7 +23,7 @@
 
 - [X] paralyze search
   - [X] report results incrementally
-  - [ ] distinguish different search queries
+  - [X] distinguish different search queries
 - [X] Implement local storage backend
   - [X] Implement upload
     - [X] Remove uploaded songs after they were played
