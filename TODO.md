@@ -21,6 +21,7 @@
 
 ## Backends
 
+- [ ] make wrms thread safe
 - [X] paralyze search
   - [X] report results incrementally
   - [X] distinguish different search queries
