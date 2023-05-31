@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"sync"
+	"sync/atomic"
 
 	"muhq.space/go/wrms/llog"
 
@@ -57,23 +59,57 @@ func newSearchResultEvent(id int, songs []Song) Event {
 }
 
 type Connection struct {
-	Id     uuid.UUID
-	Events chan Event
-	C      *websocket.Conn
+	Id      uuid.UUID
+	closing atomic.Bool
+	refs    atomic.Int64
+	Events  chan Event
+	C       *websocket.Conn
+}
+
+const EVENT_BUFFER_SIZE = 3
+
+func newConnection(id uuid.UUID, ws *websocket.Conn) *Connection {
+	return &Connection{
+		Id:     id,
+		Events: make(chan Event, EVENT_BUFFER_SIZE),
+		C:      ws,
+	}
 }
 
 func (c *Connection) Send(ev Event) {
+	llog.DDebug("Sending %v to %v", ev, c.Id)
+	// Connection is closing -> not write to it
+	if c.closing.Load() {
+		return
+	}
+	// Register us as sender
+	c.refs.Add(1)
+	// Send the event
 	c.Events <- ev
+	// Deregister us as sender
+	c.refs.Add(-1)
 }
 
 func (c *Connection) Close() {
 	llog.Info("Closing connection %s", c.Id)
+	// Remove the closing connection from the map
+	wrms.delConn(c)
+	// Announce that the connection is going to be closed
+	c.closing.Store(true)
+
+	// Consume all events from the registered senders
+	for c.refs.Load() > 0 {
+		select {
+		case <-c.Events:
+		default:
+		}
+	}
+
 	close(c.Events)
-	c.C.Close(websocket.StatusNormalClosure, "")
 }
 
 type Wrms struct {
-	Connections map[uuid.UUID]*Connection
+	Connections sync.Map
 	Songs       []Song
 	queue       Playlist
 	CurrentSong Song
@@ -85,27 +121,31 @@ type Wrms struct {
 func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
 	wrms.Config = config
-	wrms.Connections = make(map[uuid.UUID]*Connection)
 	wrms.Player = NewPlayer(&wrms, config.Backends)
 	return &wrms
 }
 
-func (wrms *Wrms) GetConn(connId uuid.UUID) *Connection {
-	return wrms.Connections[connId]
+func (wrms *Wrms) addConn(conn *Connection) {
+	llog.DDebug("Adding Connection %s", conn.Id)
+	wrms.Connections.Store(conn.Id, conn)
 }
 
-func (wrms *Wrms) Close() {
-	llog.Info("Closing WRMS")
-	for _, conn := range wrms.Connections {
-		conn.Close()
-	}
+func (wrms *Wrms) delConn(conn *Connection) {
+	llog.DDebug("Deleting Connection %s", conn.Id)
+	wrms.Connections.Delete(conn.Id)
+}
+
+func (wrms *Wrms) GetConn(connId uuid.UUID) *Connection {
+	conn, _ := wrms.Connections.Load(connId)
+	return conn.(*Connection)
 }
 
 func (wrms *Wrms) Broadcast(ev Event) {
 	llog.Info("Broadcasting %v", ev)
-	for _, conn := range wrms.Connections {
-		conn.Send(ev)
-	}
+	wrms.Connections.Range(func(_, conn any) bool {
+		conn.(*Connection).Send(ev)
+		return true
+	})
 }
 
 func (wrms *Wrms) startPlaying() {

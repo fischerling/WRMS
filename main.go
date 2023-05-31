@@ -220,8 +220,9 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		cancel()
 	}()
 
-	conn := &Connection{id, make(chan Event), c}
-	wrms.Connections[id] = conn
+	conn := newConnection(id, c)
+	wrms.addConn(conn)
+	defer conn.Close()
 
 	llog.Info("New websocket connection with id %v", id)
 
@@ -339,7 +340,6 @@ func main() {
 	config.HasUpload = slices.Contains(config.Backends, "upload")
 
 	wrms = NewWrms(config)
-	defer wrms.Close()
 
 	setupRoutes()
 
