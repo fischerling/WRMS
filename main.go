@@ -201,10 +201,6 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(r.Context())
-
-	ctx = c.CloseRead(ctx)
-
 	uuidCookie, err := r.Cookie("UUID")
 	if err != nil {
 		llog.Error("websocket connection has no set UUID cookie")
@@ -218,6 +214,9 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid UUID set in cookie", http.StatusBadRequest)
 		return
 	}
+
+	ctx, cancel := context.WithCancel(r.Context())
+	ctx = c.CloseRead(ctx)
 
 	defer func() {
 		llog.Info("cancel context of connection %v", id)
