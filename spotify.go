@@ -79,7 +79,9 @@ func (spotify *SpotifyBackend) Play(song *Song, player *Player) {
 	// For now, select the OGG 160kbps variant of the track. The "high quality"
 	// setting in the official Spotify app is the OGG 320kbps variant.
 	var selectedFile *Spotify.AudioFile
+	llog.DDebug("Available Formats:")
 	for _, file := range track.GetFile() {
+		llog.DDebug("- %v", file.GetFormat())
 		if file.GetFormat() == Spotify.AudioFile_OGG_VORBIS_160 {
 			selectedFile = file
 		}
