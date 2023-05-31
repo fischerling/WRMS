@@ -202,8 +202,14 @@
         playing = document.getElementById("playing").innerHTML = "";
       }
 
-      function handlePlay(currentSong) {
+      function handlePlay(_currentSongs) {
         {{if .IsAdmin}} document.getElementById("ppbutton").innerHTML = 'Pause'; {{end}}
+
+        if (_currentSongs == null || _currentSongs.length == 0) {
+          return;
+        }
+
+        const currentSong = _currentSongs[0]
 
         idx = -1;
         songs.forEach(function(s, i, a) { if (s.uri == currentSong.uri) idx = i; });
@@ -251,7 +257,7 @@
             handleStop()
             break;
           case "play":
-            handlePlay(cmd.songs[0])
+            handlePlay(cmd.songs)
             break;
           case "upvoted":
             handleVotes("up", cmd.songs)

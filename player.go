@@ -68,12 +68,12 @@ func (player *Player) runMpv() {
 		llog.Fatal("Mpv failed with: %s", err.Error())
 	}
 
-	wrms := player.wrms
+	currentSong := wrms.CurrentSong.Load()
 
 	llog.Info("mpv finished. Resetting mpv, and calling next")
 	player.mpv = nil
 
-	player.Backends[wrms.CurrentSong.Source].OnSongFinished(&wrms.CurrentSong)
+	player.Backends[currentSong.Source].OnSongFinished(currentSong)
 	wrms.Next()
 }
 

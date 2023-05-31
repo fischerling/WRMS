@@ -232,7 +232,11 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	initialCmds := [][]byte{}
 	if wrms.Playing {
-		data, err := json.Marshal(newEvent("play", []Song{wrms.CurrentSong}))
+		var songs []Song
+		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
+			songs = []Song{*currentSong}
+		}
+		data, err := json.Marshal(newEvent("play", songs))
 		if err != nil {
 			llog.Error("Encoding the play event failed with %s", err)
 			return

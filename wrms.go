@@ -112,7 +112,7 @@ type Wrms struct {
 	Connections sync.Map
 	Songs       []Song
 	queue       Playlist
-	CurrentSong Song
+	CurrentSong atomic.Pointer[Song]
 	Player      Player
 	Playing     bool
 	Config      Config
@@ -149,12 +149,13 @@ func (wrms *Wrms) Broadcast(ev Event) {
 }
 
 func (wrms *Wrms) startPlaying() {
-	wrms.Broadcast(newEvent("play", []Song{wrms.CurrentSong}))
-	wrms.Player.Play(&wrms.CurrentSong)
+	currentSong := wrms.CurrentSong.Load()
+	wrms.Broadcast(newEvent("play", []Song{*currentSong}))
+	wrms.Player.Play(currentSong)
 }
 
 func (wrms *Wrms) AddSong(song Song) {
-	startPlayingAgain := wrms.Playing && wrms.CurrentSong.Uri == ""
+	startPlayingAgain := wrms.Playing && wrms.CurrentSong.Load() == nil
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
@@ -187,17 +188,17 @@ func (wrms *Wrms) Next() {
 
 	next := wrms.queue.PopSong()
 	if next == nil {
-		wrms.CurrentSong.Uri = ""
+		wrms.CurrentSong.Store(nil)
 		wrms.Broadcast(newNotification("stop"))
 		return
 	}
 
-	wrms.CurrentSong = *next
+	wrms.CurrentSong.Store(next)
 
 	llog.Info("popped next song and removing it from the song list %v", next)
 
 	for i, s := range wrms.Songs {
-		if s.Uri == wrms.CurrentSong.Uri {
+		if s.Uri == next.Uri {
 			wrms.Songs[i] = wrms.Songs[len(wrms.Songs)-1]
 			wrms.Songs = wrms.Songs[:len(wrms.Songs)-1]
 			break
@@ -213,7 +214,7 @@ func (wrms *Wrms) PlayPause() {
 	wrms.Playing = !wrms.Playing
 
 	if wrms.Playing {
-		if wrms.CurrentSong.Uri == "" {
+		if wrms.CurrentSong.Load() == nil {
 			llog.Info("No song currently playing play the next")
 			wrms.Next()
 		} else {
