@@ -1,8 +1,8 @@
 ## General
 
 - [X] add admin
-  - [ ] allow admin to delete songs
-  - [ ] allow admin to skip songs
+  - [X] allow admin to delete songs
+  - [X] allow admin to skip songs
 - [X] continue playback when song is added to empty playlist
 - [ ] support advanced search
 - [ ] Show more Song information
