@@ -208,11 +208,15 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	uuidCookie, err := r.Cookie("UUID")
 	if err != nil {
 		llog.Error("websocket connection has no set UUID cookie")
+		http.Error(w, "websocket connection has no set UUID cookie", http.StatusBadRequest)
+		return
 	}
 
 	id, err := uuid.Parse(uuidCookie.Value)
 	if err != nil {
 		llog.Error("Invalid UUID set in cookie")
+		http.Error(w, "Invalid UUID set in cookie", http.StatusBadRequest)
+		return
 	}
 
 	defer func() {
