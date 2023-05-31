@@ -291,7 +291,6 @@
 
         const form = new FormData(document.getElementById("searchForm"));
         const urlParams = new URLSearchParams(form);
-        urlParams.append("id", searchId);
         new HttpClient().get("/search?" + urlParams.toString(), console.log);
         return false;
       }
@@ -320,12 +319,12 @@
         searchingIndicator.style.display = "none";
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
         searchResultsOverlay['aria-busy'] = false;
-        searchId += 1;
       }
 
       function handleSearch(id, songs) {
         // Ignore stale search results
         if (id < searchId) { return; }
+        if (id > searchId) { searchId = id; }
 
         let searchResultsOverlay = document.getElementById("searchResultsOverlay");
         let searchResults = document.getElementById("searchResults");

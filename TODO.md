@@ -14,6 +14,7 @@
 - [X] escape HTML 
 - [X] support incremental search results
   - [X] distinguish different search queries
+- [ ] do not apply obsolete events
 
 ## Web Backend
 
@@ -21,7 +22,9 @@
 
 ## Backends
 
+- [ ] cancel old searches
 - [ ] make wrms thread safe
+  - [X] tag events with ids
 - [X] paralyze search
   - [X] report results incrementally
   - [X] distinguish different search queries

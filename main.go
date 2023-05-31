@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -85,11 +84,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, ok := strconv.Atoi(r.URL.Query().Get("id"))
-	if ok != err {
-		http.Error(w, "No or invalid search id provided", http.StatusBadRequest)
-		return
-	}
+	id := wrms.eventId.Add(1)
 
 	llog.Debug("Searching for %s", pattern)
 
@@ -99,7 +94,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for result := range resultsChan {
 			if len(result) > 0 {
-				conn.Send(newSearchResultEvent(id, result))
+				conn.Send(Event{Event: "search", Id: id, Songs: result})
 			}
 		}
 
@@ -235,7 +230,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
 			songs = []Song{*currentSong}
 		}
-		data, err := json.Marshal(newEvent("play", songs))
+		data, err := json.Marshal(wrms.newEvent("play", songs))
 		if err != nil {
 			llog.Error("Encoding the play event failed with %s", err)
 			return
@@ -246,7 +241,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	upvoted := []Song{}
 	downvoted := []Song{}
 	if len(wrms.Songs) > 0 {
-		data, err := json.Marshal(newEvent("add", wrms.Songs))
+		data, err := json.Marshal(wrms.newEvent("add", wrms.Songs))
 		if err != nil {
 			llog.Error("Encoding the add event failed with %s", err)
 			return
@@ -263,7 +258,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(upvoted) > 0 {
-		data, err := json.Marshal(newEvent("upvoted", upvoted))
+		data, err := json.Marshal(wrms.newEvent("upvoted", upvoted))
 		if err != nil {
 			llog.Error("Encoding the upvoted event failed with %s", err)
 			return
@@ -272,7 +267,7 @@ func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(downvoted) > 0 {
-		data, err := json.Marshal(newEvent("downvoted", downvoted))
+		data, err := json.Marshal(wrms.newEvent("downvoted", downvoted))
 		if err != nil {
 			llog.Error("Encoding the upvoted event failed with %s", err)
 			return
