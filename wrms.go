@@ -151,7 +151,6 @@ func (wrms *Wrms) Broadcast(ev Event) {
 func (wrms *Wrms) startPlaying() {
 	currentSong := wrms.CurrentSong.Load()
 	wrms.Broadcast(newEvent("play", []Song{*currentSong}))
-	wrms.Player.Play(currentSong)
 }
 
 func (wrms *Wrms) AddSong(song Song) {
@@ -206,7 +205,11 @@ func (wrms *Wrms) Next() {
 	}
 
 	if wrms.Playing {
-		wrms.startPlaying()
+		wrms.Broadcast(newEvent("play", []Song{*next}))
+		wrms.Player.Play(next)
+	} else if wrms.Player.mpv != nil {
+		wrms.Broadcast(newEvent("next", []Song{*next}))
+		wrms.Player.terminateMpv()
 	}
 }
 
@@ -214,11 +217,17 @@ func (wrms *Wrms) PlayPause() {
 	wrms.Playing = !wrms.Playing
 
 	if wrms.Playing {
-		if wrms.CurrentSong.Load() == nil {
+		currentSong := wrms.CurrentSong.Load()
+		if currentSong == nil {
 			llog.Info("No song currently playing play the next")
 			wrms.Next()
 		} else {
-			wrms.startPlaying()
+			wrms.Broadcast(newEvent("play", []Song{*currentSong}))
+			if wrms.Player.mpv != nil {
+				wrms.Player.Continue()
+			} else {
+				wrms.Player.Play(currentSong)
+			}
 		}
 	} else {
 		wrms.Broadcast(newNotification("pause"))

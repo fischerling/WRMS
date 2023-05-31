@@ -48,15 +48,6 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 }
 
 func (player *Player) Play(song *Song) {
-	if player.mpv != nil {
-		llog.Debug("Send SIGCONT to mpv subprocess")
-		err := player.mpv.Process.Signal(syscall.SIGCONT)
-		if err != nil {
-			llog.Fatal("Failed to send SIGCONT to mpv")
-		}
-		return
-	}
-
 	llog.Info("Start playing %v", song)
 	player.Backends[song.Source].Play(song, player)
 }
@@ -65,7 +56,7 @@ func (player *Player) runMpv() {
 	output, err := player.mpv.CombinedOutput()
 	if err != nil {
 		llog.Debug("Mpv output: %s", output)
-		llog.Fatal("Mpv failed with: %s", err.Error())
+		llog.Fatal("Mpv failed with: %s", err)
 	}
 
 	currentSong := wrms.CurrentSong.Load()
@@ -75,6 +66,15 @@ func (player *Player) runMpv() {
 
 	player.Backends[currentSong.Source].OnSongFinished(currentSong)
 	wrms.Next()
+}
+
+func (player *Player) terminateMpv() {
+	if player.mpv == nil {
+		llog.Fatal("Trying to terminate not running mpv process")
+	}
+
+	player.mpv.Process.Signal(syscall.SIGTERM)
+	player.mpv = nil
 }
 
 const MPV_FLAGS = "--no-video"
@@ -130,6 +130,19 @@ func (player *Player) Pause() {
 		if err != nil {
 			llog.Fatal("Failed to send SIGSTOP to mpv")
 		}
+	}
+}
+
+func (player *Player) Continue() {
+	if player.mpv == nil {
+		llog.Warning("Continue Play but there is no running mpv process to continue")
+		return
+	}
+
+	llog.Debug("Send SIGCONT to mpv subprocess")
+	err := player.mpv.Process.Signal(syscall.SIGCONT)
+	if err != nil {
+		llog.Fatal("Failed to send SIGCONT to mpv")
 	}
 }
 

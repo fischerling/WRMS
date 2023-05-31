@@ -202,8 +202,8 @@
         playing = document.getElementById("playing").innerHTML = "";
       }
 
-      function handlePlay(_currentSongs) {
-        {{if .IsAdmin}} document.getElementById("ppbutton").innerHTML = 'Pause'; {{end}}
+      function handlePlayOrNext(cmd, _currentSongs) {
+        {{if .IsAdmin}}if (cmd == "play") { document.getElementById("ppbutton").innerHTML = 'Pause'; }{{end}}
 
         if (_currentSongs == null || _currentSongs.length == 0) {
           return;
@@ -257,7 +257,10 @@
             handleStop()
             break;
           case "play":
-            handlePlay(cmd.songs)
+            handlePlayOrNext("play", cmd.songs)
+            break;
+          case "next":
+            handlePlayOrNext("next", cmd.songs)
             break;
           case "upvoted":
             handleVotes("up", cmd.songs)
