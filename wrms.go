@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 	"sync/atomic"
@@ -46,29 +47,35 @@ type Event struct {
 	Songs []Song `json:"songs"`
 }
 
-func (wrms *Wrms) newEvent(event string, songs []Song) Event {
-	return Event{Event: event, Id: wrms.eventId.Add(1), Songs: songs}
+func newEvent(event string, songs []Song) Event {
+	return Event{Event: event, Songs: songs}
 }
 
 func newNotification(notification string) Event {
-	return Event{Event: notification, Id: wrms.eventId.Add(1)}
+	return Event{Event: notification}
 }
 
 type Connection struct {
-	Id      uuid.UUID
-	closing atomic.Bool
-	refs    atomic.Int64
-	Events  chan Event
-	C       *websocket.Conn
+	Id        uuid.UUID
+	closing   atomic.Bool
+	refs      atomic.Int64
+	Events    chan Event
+	ws        *websocket.Conn
+	ctx       context.Context
+	cancel    func()
+	nextEvent uint64
 }
 
 const EVENT_BUFFER_SIZE = 3
 
-func newConnection(id uuid.UUID, ws *websocket.Conn) *Connection {
+func newConnection(id uuid.UUID, ws *websocket.Conn, ctx context.Context, cncl func()) *Connection {
+
 	return &Connection{
 		Id:     id,
 		Events: make(chan Event, EVENT_BUFFER_SIZE),
-		C:      ws,
+		ws:     ws,
+		ctx:    ctx,
+		cancel: cncl,
 	}
 }
 
@@ -84,6 +91,42 @@ func (c *Connection) Send(ev Event) {
 	c.Events <- ev
 	// Deregister us as sender
 	c.refs.Add(-1)
+}
+
+func (conn *Connection) serve() {
+	// Map to store future events to send them in order
+	toSend := make(map[uint64]*Event)
+
+	for {
+		var ev Event
+		// We have the next event -> send it
+		if toSend[conn.nextEvent] != nil {
+			ev = *toSend[conn.nextEvent]
+			delete(toSend, conn.nextEvent)
+			// We have not received the next event yet -> receive a new event
+		} else {
+			ev = <-conn.Events
+			// We received a future object -> store it and continue
+			if ev.Id > conn.nextEvent {
+				toSend[ev.Id] = &ev
+				continue
+			}
+		}
+
+		data, err := json.Marshal(ev)
+		if err != nil {
+			llog.Error("Encoding the %s event failed with %s", ev.Event, err)
+			return
+		}
+
+		llog.Debug("Sending ev %s to %s", string(data), conn.Id)
+		err = conn.ws.Write(conn.ctx, websocket.MessageText, data)
+		if err != nil {
+			llog.Warning("Sending the ev %s to %d failed with %s", string(data), conn.Id, err)
+			return
+		}
+	}
+	conn.nextEvent++
 }
 
 func (c *Connection) Close() {
@@ -106,6 +149,8 @@ func (c *Connection) Close() {
 
 type Wrms struct {
 	Connections sync.Map
+	// The rwlock must be held when using most internal state
+	rwlock      sync.RWMutex
 	Songs       []Song
 	queue       Playlist
 	CurrentSong atomic.Pointer[Song]
@@ -132,12 +177,73 @@ func (wrms *Wrms) delConn(conn *Connection) {
 	wrms.Connections.Delete(conn.Id)
 }
 
+func (wrms *Wrms) initConn(conn *Connection) error {
+	wrms.addConn(conn)
+
+	wrms.rwlock.RLock()
+	defer wrms.rwlock.RUnlock()
+
+	curEventId := wrms.eventId.Load()
+	conn.nextEvent = curEventId + 1
+
+	initialCmds := []Event{}
+	if wrms.Playing {
+		var songs []Song
+		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
+			songs = []Song{*currentSong}
+		}
+		initialCmds = append(initialCmds, newEvent("play", songs))
+	}
+
+	upvoted := []Song{}
+	downvoted := []Song{}
+	if len(wrms.Songs) > 0 {
+		initialCmds = append(initialCmds, newEvent("add", wrms.Songs))
+
+		for _, song := range wrms.Songs {
+			if _, ok := song.Upvotes[conn.Id]; ok {
+				upvoted = append(upvoted, song)
+			} else if _, ok := song.Downvotes[conn.Id]; ok {
+				downvoted = append(downvoted, song)
+			}
+		}
+	}
+
+	if len(upvoted) > 0 {
+		initialCmds = append(initialCmds, newEvent("upvoted", upvoted))
+	}
+
+	if len(downvoted) > 0 {
+		initialCmds = append(initialCmds, newEvent("downvoted", downvoted))
+	}
+
+	for _, cmd := range initialCmds {
+		llog.Info("Sending initial cmd %v", cmd)
+		data, err := json.Marshal(cmd)
+		if err != nil {
+			llog.Warning("Encoding the initial command %v failed with %s", cmd, err)
+			return err
+		}
+
+		err = conn.ws.Write(conn.ctx, websocket.MessageText, data)
+		if err != nil {
+			llog.Warning("Sending the initial commands failed with %s", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (wrms *Wrms) GetConn(connId uuid.UUID) *Connection {
 	conn, _ := wrms.Connections.Load(connId)
 	return conn.(*Connection)
 }
 
 func (wrms *Wrms) Broadcast(ev Event) {
+	// Tag the event to create a total event order
+	ev.Id = wrms.eventId.Add(1)
+
 	llog.Info("Broadcasting %v", ev)
 	wrms.Connections.Range(func(_, conn any) bool {
 		conn.(*Connection).Send(ev)
@@ -147,7 +253,7 @@ func (wrms *Wrms) Broadcast(ev Event) {
 
 func (wrms *Wrms) startPlaying() {
 	currentSong := wrms.CurrentSong.Load()
-	wrms.Broadcast(wrms.newEvent("play", []Song{*currentSong}))
+	wrms.Broadcast(newEvent("play", []Song{*currentSong}))
 }
 
 func (wrms *Wrms) AddSong(song Song) {
@@ -156,7 +262,7 @@ func (wrms *Wrms) AddSong(song Song) {
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
 	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
-	wrms.Broadcast(wrms.newEvent("add", []Song{song}))
+	wrms.Broadcast(newEvent("add", []Song{song}))
 
 	if startPlayingAgain {
 		wrms.Next()
@@ -174,7 +280,7 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 		wrms.Songs = wrms.Songs[:len(wrms.Songs)-1]
 
 		wrms.queue.RemoveSong(s)
-		wrms.Broadcast(wrms.newEvent("delete", []Song{*s}))
+		wrms.Broadcast(newEvent("delete", []Song{*s}))
 		break
 	}
 }
@@ -202,10 +308,10 @@ func (wrms *Wrms) Next() {
 	}
 
 	if wrms.Playing {
-		wrms.Broadcast(wrms.newEvent("play", []Song{*next}))
+		wrms.Broadcast(newEvent("play", []Song{*next}))
 		wrms.Player.Play(next)
 	} else if wrms.Player.mpv != nil {
-		wrms.Broadcast(wrms.newEvent("next", []Song{*next}))
+		wrms.Broadcast(newEvent("next", []Song{*next}))
 		wrms.Player.terminateMpv()
 	}
 }
@@ -219,7 +325,7 @@ func (wrms *Wrms) PlayPause() {
 			llog.Info("No song currently playing play the next")
 			wrms.Next()
 		} else {
-			wrms.Broadcast(wrms.newEvent("play", []Song{*currentSong}))
+			wrms.Broadcast(newEvent("play", []Song{*currentSong}))
 			if wrms.Player.mpv != nil {
 				wrms.Player.Continue()
 			} else {
@@ -290,7 +396,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 		}
 
 		wrms.queue.Adjust(s)
-		wrms.Broadcast(wrms.newEvent("update", []Song{*s}))
+		wrms.Broadcast(newEvent("update", []Song{*s}))
 		break
 	}
 }

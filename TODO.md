@@ -14,7 +14,7 @@
 - [X] escape HTML 
 - [X] support incremental search results
   - [X] distinguish different search queries
-- [ ] do not apply obsolete events
+- [X] do not apply obsolete events
 
 ## Web Backend
 

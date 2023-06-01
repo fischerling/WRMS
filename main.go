@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -190,114 +189,35 @@ func nextHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func wsEndpoint(w http.ResponseWriter, r *http.Request) {
-	c, err := websocket.Accept(w, r, nil)
+	connId, err := getConnId(w, r)
+	if err != nil {
+		return
+	}
+
+	ws, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		llog.Warning("Accepting the websocket failed with %s", err)
 		return
 	}
 
-	uuidCookie, err := r.Cookie("UUID")
-	if err != nil {
-		llog.Error("websocket connection has no set UUID cookie")
-		http.Error(w, "websocket connection has no set UUID cookie", http.StatusBadRequest)
-		return
-	}
-
-	id, err := uuid.Parse(uuidCookie.Value)
-	if err != nil {
-		llog.Error("Invalid UUID set in cookie")
-		http.Error(w, "Invalid UUID set in cookie", http.StatusBadRequest)
-		return
-	}
-
 	ctx, cancel := context.WithCancel(r.Context())
-	ctx = c.CloseRead(ctx)
+	ctx = ws.CloseRead(ctx)
 
 	defer func() {
-		llog.Info("cancel context of connection %v", id)
+		llog.Info("cancel context of connection %v", connId)
 		cancel()
 	}()
 
-	conn := newConnection(id, c)
-	wrms.addConn(conn)
+	conn := newConnection(connId, ws, ctx, cancel)
 	defer conn.Close()
 
-	llog.Info("New websocket connection with id %v", id)
-
-	initialCmds := [][]byte{}
-	if wrms.Playing {
-		var songs []Song
-		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
-			songs = []Song{*currentSong}
-		}
-		data, err := json.Marshal(wrms.newEvent("play", songs))
-		if err != nil {
-			llog.Error("Encoding the play event failed with %s", err)
-			return
-		}
-		initialCmds = append(initialCmds, data)
+	llog.Info("New websocket connection with id %v", connId)
+	err = wrms.initConn(conn)
+	if err != nil {
+		return
 	}
 
-	upvoted := []Song{}
-	downvoted := []Song{}
-	if len(wrms.Songs) > 0 {
-		data, err := json.Marshal(wrms.newEvent("add", wrms.Songs))
-		if err != nil {
-			llog.Error("Encoding the add event failed with %s", err)
-			return
-		}
-		initialCmds = append(initialCmds, data)
-
-		for _, song := range wrms.Songs {
-			if _, ok := song.Upvotes[id]; ok {
-				upvoted = append(upvoted, song)
-			} else if _, ok := song.Downvotes[id]; ok {
-				downvoted = append(downvoted, song)
-			}
-		}
-	}
-
-	if len(upvoted) > 0 {
-		data, err := json.Marshal(wrms.newEvent("upvoted", upvoted))
-		if err != nil {
-			llog.Error("Encoding the upvoted event failed with %s", err)
-			return
-		}
-		initialCmds = append(initialCmds, data)
-	}
-
-	if len(downvoted) > 0 {
-		data, err := json.Marshal(wrms.newEvent("downvoted", downvoted))
-		if err != nil {
-			llog.Error("Encoding the upvoted event failed with %s", err)
-			return
-		}
-		initialCmds = append(initialCmds, data)
-	}
-
-	for _, data := range initialCmds {
-		llog.Info("Sending initial cmd %s", string(data))
-		err = c.Write(ctx, websocket.MessageText, data)
-		if err != nil {
-			llog.Warning("Sending the initial commands failed with %s", err)
-			return
-		}
-	}
-
-	for ev := range conn.Events {
-		data, err := json.Marshal(ev)
-		if err != nil {
-			llog.Error("Encoding the %s event failed with %s", ev.Event, err)
-			return
-		}
-
-		llog.Debug("Sending ev %s to %s", string(data), id)
-		err = c.Write(ctx, websocket.MessageText, data)
-		if err != nil {
-			llog.Warning("Sending the ev %s to %d failed with %s", string(data), id, err)
-			return
-		}
-	}
+	conn.serve()
 }
 
 func setupRoutes() {
