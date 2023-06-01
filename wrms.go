@@ -113,6 +113,8 @@ func (conn *Connection) serve() {
 			}
 		}
 
+		conn.nextEvent++
+
 		data, err := json.Marshal(ev)
 		if err != nil {
 			llog.Error("Encoding the %s event failed with %s", ev.Event, err)
@@ -126,7 +128,6 @@ func (conn *Connection) serve() {
 			return
 		}
 	}
-	conn.nextEvent++
 }
 
 func (c *Connection) Close() {
