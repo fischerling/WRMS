@@ -252,16 +252,16 @@ func (wrms *Wrms) Broadcast(ev Event) {
 	})
 }
 
-func (wrms *Wrms) startPlaying() {
-	currentSong := wrms.CurrentSong.Load()
-	wrms.Broadcast(newEvent("play", []Song{*currentSong}))
-}
-
 func (wrms *Wrms) AddSong(song Song) {
+	wrms.rwlock.Lock()
+
 	startPlayingAgain := wrms.Playing && wrms.CurrentSong.Load() == nil
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
+
+	wrms.rwlock.Unlock()
+
 	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
 	wrms.Broadcast(newEvent("add", []Song{song}))
 
@@ -271,6 +271,8 @@ func (wrms *Wrms) AddSong(song Song) {
 }
 
 func (wrms *Wrms) DeleteSong(songUri string) {
+	wrms.rwlock.Lock()
+
 	for i := 0; i < len(wrms.Songs); i++ {
 		s := &wrms.Songs[i]
 		if s.Uri != songUri {
@@ -281,6 +283,9 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 		wrms.Songs = wrms.Songs[:len(wrms.Songs)-1]
 
 		wrms.queue.RemoveSong(s)
+
+		wrms.rwlock.Unlock()
+
 		wrms.Broadcast(newEvent("delete", []Song{*s}))
 		break
 	}
@@ -340,6 +345,8 @@ func (wrms *Wrms) PlayPause() {
 }
 
 func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string) {
+	wrms.rwlock.Lock()
+
 	for i := 0; i < len(wrms.Songs); i++ {
 		s := &wrms.Songs[i]
 		if s.Uri != songUri {
@@ -397,6 +404,8 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 		}
 
 		wrms.queue.Adjust(s)
+		wrms.rwlock.Unlock()
+
 		wrms.Broadcast(newEvent("update", []Song{*s}))
 		break
 	}
