@@ -292,6 +292,11 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 }
 
 func (wrms *Wrms) Next() {
+	wrms.rwlock.Lock()
+	wrms._next()
+}
+
+func (wrms *Wrms) _next() {
 	llog.DDebug("Next Song")
 
 	next := wrms.queue.PopSong()
@@ -313,35 +318,55 @@ func (wrms *Wrms) Next() {
 		}
 	}
 
+	var cmd string
 	if wrms.Playing {
-		wrms.Broadcast(newEvent("play", []Song{*next}))
 		wrms.Player.Play(next)
+		cmd = "play"
 	} else if wrms.Player.mpv != nil {
-		wrms.Broadcast(newEvent("next", []Song{*next}))
 		wrms.Player.terminateMpv()
+		cmd = "next"
 	}
+
+	wrms.rwlock.Unlock()
+
+	wrms.Broadcast(newEvent(cmd, []Song{*next}))
 }
 
 func (wrms *Wrms) PlayPause() {
-	wrms.Playing = !wrms.Playing
+	wrms.rwlock.Lock()
+	// Toggle the playback state
+	defer func() { wrms.Playing = !wrms.Playing }()
 
+	// Wrms is playing -> pause the player
 	if wrms.Playing {
-		currentSong := wrms.CurrentSong.Load()
-		if currentSong == nil {
-			llog.Info("No song currently playing play the next")
-			wrms.Next()
-		} else {
-			wrms.Broadcast(newEvent("play", []Song{*currentSong}))
-			if wrms.Player.mpv != nil {
-				wrms.Player.Continue()
-			} else {
-				wrms.Player.Play(currentSong)
-			}
-		}
-	} else {
-		wrms.Broadcast(newNotification("pause"))
 		wrms.Player.Pause()
+		wrms.rwlock.Unlock()
+		wrms.Broadcast(newNotification("pause"))
+		return
 	}
+
+	// Wrms is not playing
+	currentSong := wrms.CurrentSong.Load()
+
+	// Wrms has no current song -> try to play the next song
+	if currentSong == nil {
+		llog.Info("No song currently playing play the next")
+		// _next() releases the rwlock
+		wrms._next()
+		return
+	}
+
+	// Wrms has an active mpv process -> continue playing
+	if wrms.Player.mpv != nil {
+		wrms.Player.Continue()
+		// Wrms has a current song but no mpv process playing it -> start a new one
+	} else {
+		wrms.Player.Play(currentSong)
+	}
+
+	wrms.rwlock.Unlock()
+
+	wrms.Broadcast(newEvent("play", []Song{*currentSong}))
 }
 
 func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string) {

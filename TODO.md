@@ -24,6 +24,7 @@
 
 - [ ] cancel old searches
 - [ ] make wrms thread safe
+  - [ ] synchronize Player.runMpv with the rest of Wrms
   - [X] tag events with ids
 - [X] paralyze search
   - [X] report results incrementally
