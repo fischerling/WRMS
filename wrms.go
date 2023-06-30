@@ -339,17 +339,17 @@ func (wrms *Wrms) _next() {
 func (wrms *Wrms) PlayPause() {
 	wrms.rwlock.Lock()
 	// Toggle the playback state
-	defer func() { wrms.Playing = !wrms.Playing }()
+	wrms.Playing = !wrms.Playing
 
-	// Wrms is playing -> pause the player
-	if wrms.Playing {
+	// Wrms was playing -> pause the player
+	if !wrms.Playing {
 		wrms.Player.Pause()
 		wrms.rwlock.Unlock()
 		wrms.Broadcast(newNotification("pause"))
 		return
 	}
 
-	// Wrms is not playing
+	// Wrms was not playing
 	currentSong := wrms.CurrentSong.Load()
 
 	// Wrms has no current song -> try to play the next song
