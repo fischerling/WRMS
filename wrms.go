@@ -414,9 +414,8 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 			if _, ok := s.Downvotes[connId]; ok {
 				delete(s.Downvotes, connId)
 				s.Weight += 1
-			}
 
-			if _, ok := s.Upvotes[connId]; ok {
+			} else if _, ok := s.Upvotes[connId]; ok {
 				delete(s.Upvotes, connId)
 				s.Weight -= 1
 			} else {
