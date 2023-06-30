@@ -266,7 +266,7 @@ func (wrms *Wrms) AddSong(song Song) {
 	wrms.Broadcast(newEvent("add", []Song{song}))
 
 	if startPlayingAgain {
-		wrms.Next()
+		wrms._lockedNext()
 	}
 }
 
@@ -293,24 +293,28 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 
 func (wrms *Wrms) Next() {
 	wrms.rwlock.Lock()
+
+	// Terminate the mpv process playing the current song
+	if wrms.Player.mpv.Load() != nil {
+		wrms.Player.Stop()
+	}
+
+	wrms._next()
+}
+
+func (wrms *Wrms) _lockedNext() {
+	wrms.rwlock.Lock()
 	wrms._next()
 }
 
 func (wrms *Wrms) _next() {
 	llog.DDebug("Next Song")
 
-	cmd := "play"
-
-	// Terminate the mpv process playing the current song
-	if wrms.Player.mpv.Load() != nil {
-		wrms.Player.Stop()
-		cmd = "next"
-	}
-
 	next := wrms.queue.PopSong()
 	if next == nil {
 		wrms.CurrentSong.Store(nil)
 		wrms.Broadcast(newNotification("stop"))
+		wrms.rwlock.Unlock()
 		return
 	}
 
@@ -326,9 +330,11 @@ func (wrms *Wrms) _next() {
 		}
 	}
 
+	cmd := "next"
 	// We are playing -> start playing the next song
 	if wrms.Playing {
 		wrms.Player.Play(next)
+		cmd = "play"
 	}
 
 	wrms.rwlock.Unlock()

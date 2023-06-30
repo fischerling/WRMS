@@ -107,9 +107,9 @@ func (player *Player) runMpv() {
 	player.Backends[currentSong.Source].OnSongFinished(currentSong)
 
 	// mpv terminated because it finished playing the song
-	if err != nil {
+	if err == nil {
 		llog.Info("mpv finished. Resetting mpv, and calling next")
-		wrms.Next()
+		wrms._lockedNext()
 	}
 }
 
