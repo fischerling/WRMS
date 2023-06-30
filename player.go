@@ -89,6 +89,10 @@ func (player *Player) startMpv(uri string) *exec.Cmd {
 }
 
 func (player *Player) runMpv() {
+	// Remember the song we are playing
+	// TODO: This is potentially racy
+	currentSong := wrms.CurrentSong.Load()
+
 	mpv := player.mpv.Load()
 	output, err := mpv.CombinedOutput()
 	if err != nil {
@@ -99,7 +103,6 @@ func (player *Player) runMpv() {
 		}
 	}
 
-	currentSong := wrms.CurrentSong.Load()
 	player.mpv.Store(nil)
 	player.Backends[currentSong.Source].OnSongFinished(currentSong)
 
