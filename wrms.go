@@ -299,6 +299,14 @@ func (wrms *Wrms) Next() {
 func (wrms *Wrms) _next() {
 	llog.DDebug("Next Song")
 
+	cmd := "play"
+
+	// Terminate the mpv process playing the current song
+	if wrms.Player.mpv.Load() != nil {
+		wrms.Player.Stop()
+		cmd = "next"
+	}
+
 	next := wrms.queue.PopSong()
 	if next == nil {
 		wrms.CurrentSong.Store(nil)
@@ -318,13 +326,9 @@ func (wrms *Wrms) _next() {
 		}
 	}
 
-	var cmd string
+	// We are playing -> start playing the next song
 	if wrms.Playing {
 		wrms.Player.Play(next)
-		cmd = "play"
-	} else if wrms.Player.mpv != nil {
-		wrms.Player.terminateMpv()
-		cmd = "next"
 	}
 
 	wrms.rwlock.Unlock()
