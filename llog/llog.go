@@ -3,6 +3,7 @@ package llog
 import (
 	"fmt"
 	"log"
+		   "runtime/debug"
 )
 
 type LogLevel int
@@ -53,6 +54,7 @@ func Log(l LogLevel, format string, a ...any) {
 	msg = fmt.Sprintf("[%s] %s", l.String(), msg)
 
 	if l == l_Fatal {
+		   debug.PrintStack()
 		log.Fatalln(msg)
 	} else {
 		log.Println(msg)
