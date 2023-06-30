@@ -155,7 +155,7 @@ type Wrms struct {
 	Songs       []Song
 	queue       Playlist
 	CurrentSong atomic.Pointer[Song]
-	Player      Player
+	Player      *Player
 	Playing     bool
 	Config      Config
 	eventId     atomic.Uint64
@@ -357,7 +357,7 @@ func (wrms *Wrms) PlayPause() {
 	}
 
 	// Wrms has an active mpv process -> continue playing
-	if wrms.Player.mpv != nil {
+	if wrms.Player.mpv.Load() != nil {
 		wrms.Player.Continue()
 		// Wrms has a current song but no mpv process playing it -> start a new one
 	} else {

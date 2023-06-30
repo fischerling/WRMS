@@ -5,18 +5,27 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"muhq.space/go/wrms/llog"
 )
 
-type Player struct {
-	Backends map[string]Backend
-	mpv      *exec.Cmd
-	wrms     *Wrms
+// command struct used to serialize player commands
+type cmd struct {
+	cmd  string
+	data io.Reader
+	uri  string
 }
 
-func NewPlayer(wrms *Wrms, backends []string) Player {
+type Player struct {
+	Backends map[string]Backend
+	wrms     *Wrms
+	mpv      atomic.Pointer[exec.Cmd]
+	cmdQueue chan cmd
+}
+
+func NewPlayer(wrms *Wrms, backends []string) *Player {
 	availableBackends := map[string]Backend{}
 
 	var b Backend
@@ -44,37 +53,12 @@ func NewPlayer(wrms *Wrms, backends []string) Player {
 		}
 	}
 
-	return Player{availableBackends, nil, wrms}
-}
-
-func (player *Player) Play(song *Song) {
-	llog.Info("Start playing %v", song)
-	player.Backends[song.Source].Play(song, player)
-}
-
-func (player *Player) runMpv() {
-	output, err := player.mpv.CombinedOutput()
-	if err != nil {
-		llog.Debug("Mpv output: %s", output)
-		llog.Fatal("Mpv failed with: %s", err)
-	}
-
-	currentSong := wrms.CurrentSong.Load()
-
-	llog.Info("mpv finished. Resetting mpv, and calling next")
-	player.mpv = nil
-
-	player.Backends[currentSong.Source].OnSongFinished(currentSong)
-	wrms.Next()
-}
-
-func (player *Player) terminateMpv() {
-	if player.mpv == nil {
-		llog.Fatal("Trying to terminate not running mpv process")
-	}
-
-	player.mpv.Process.Signal(syscall.SIGTERM)
-	player.mpv = nil
+	p := &Player{
+		Backends: availableBackends,
+		wrms:     wrms,
+		cmdQueue: make(chan cmd)}
+	go p.serveCmds()
+	return p
 }
 
 const MPV_FLAGS = "--no-video"
@@ -88,26 +72,86 @@ func mpvArgv(uri string) []string {
 	return cmd
 }
 
-func (player *Player) startMpv(uri string) {
-	if player.mpv != nil {
+func (player *Player) startMpv(uri string) *exec.Cmd {
+	if player.mpv.Load() != nil {
 		llog.Fatal("Player has already an mpv subprocess")
 	}
 	llog.Info("Start mpv to play %s", uri)
 
 	cmd := mpvArgv(uri)
 	llog.Debug("Running 'mpv %s'", strings.Join(cmd, " "))
-	player.mpv = exec.Command("mpv", cmd...)
+
+	// Since all player controll are serialized through cmdQueue no one
+	// else can modify player.mpv at this point.
+	mpv := exec.Command("mpv", cmd...)
+	player.mpv.Store(mpv)
+	return mpv
 }
 
-func (player *Player) PlayUri(uri string) {
+func (player *Player) runMpv() {
+	mpv := player.mpv.Load()
+	output, err := mpv.CombinedOutput()
+	if err != nil {
+		// mpv returns exit code 4 if it teminates due to a signal
+		if err.(*exec.ExitError).ExitCode() != 4 {
+			llog.Debug("Mpv output: %s", output)
+			llog.Fatal("Mpv failed with: %s", err)
+		}
+	}
+
+	currentSong := wrms.CurrentSong.Load()
+	player.mpv.Store(nil)
+	player.Backends[currentSong.Source].OnSongFinished(currentSong)
+
+	// mpv terminated because it finished playing the song
+	if err != nil {
+		llog.Info("mpv finished. Resetting mpv, and calling next")
+		wrms.Next()
+	}
+}
+
+func (p *Player) serveCmds() {
+	for cmd := range p.cmdQueue {
+		switch cmd.cmd {
+		case "playData":
+			p._playData(cmd.data)
+		case "playUri":
+			p._playUri(cmd.uri)
+		case "pause":
+			p._pause()
+		case "continue":
+			p._continue()
+		case "stop":
+			p._stop()
+		}
+	}
+}
+
+// Play arbitrary media using mpv
+func (p *Player) PlayUri(uri string)      { p.cmdQueue <- cmd{cmd: "playUri", uri: uri} }
+func (p *Player) PlayData(data io.Reader) { p.cmdQueue <- cmd{cmd: "playData", data: data} }
+
+// Controls
+func (p *Player) Pause()    { p.cmdQueue <- cmd{cmd: "pause"} }
+func (p *Player) Continue() { p.cmdQueue <- cmd{cmd: "continue"} }
+func (p *Player) Stop()     { p.cmdQueue <- cmd{cmd: "stop"} }
+func (p *Player) Close()    { close(p.cmdQueue) }
+
+// Double dispatch play entry point
+func (p *Player) Play(song *Song) {
+	llog.Info("Start playing %v", song)
+	p.Backends[song.Source].Play(song, p)
+}
+
+func (player *Player) _playUri(uri string) {
 	player.startMpv(uri)
 	go player.runMpv()
 }
 
-func (player *Player) PlayData(data io.Reader) {
-	player.startMpv("-")
+func (player *Player) _playData(data io.Reader) {
+	mpv := player.startMpv("-")
 
-	stdin, err := player.mpv.StdinPipe()
+	stdin, err := mpv.StdinPipe()
 	if err != nil {
 		llog.Fatal("Connecting to mpv Pipe failed: %v", err)
 	}
@@ -116,34 +160,57 @@ func (player *Player) PlayData(data io.Reader) {
 		defer stdin.Close()
 
 		if _, err := io.Copy(stdin, data); err != nil {
-			llog.Fatal("Failed to write song data to mpv: %v", err)
+			llog.Warning("Failed to write song data to mpv: %v", err)
 		}
 	}()
 
 	go player.runMpv()
 }
 
-func (player *Player) Pause() {
-	if player.mpv != nil {
-		llog.Debug("Send SIGSTOP to mpv subprocess")
-		err := player.mpv.Process.Signal(syscall.SIGSTOP)
-		if err != nil {
-			llog.Fatal("Failed to send SIGSTOP to mpv")
-		}
+func (player *Player) _pause() {
+	mpv := player.mpv.Load()
+	if mpv == nil {
+		llog.Warning("No mpv process to pause")
+		return
+	}
+
+	llog.Debug("Send SIGSTOP to mpv subprocess")
+	err := mpv.Process.Signal(syscall.SIGSTOP)
+	if err != nil {
+		llog.Fatal("Failed to send SIGSTOP to mpv")
 	}
 }
 
-func (player *Player) Continue() {
-	if player.mpv == nil {
+func (player *Player) _continue() {
+	mpv := player.mpv.Load()
+	if mpv == nil {
 		llog.Warning("Continue Play but there is no running mpv process to continue")
 		return
 	}
 
 	llog.Debug("Send SIGCONT to mpv subprocess")
-	err := player.mpv.Process.Signal(syscall.SIGCONT)
+	err := mpv.Process.Signal(syscall.SIGCONT)
 	if err != nil {
 		llog.Fatal("Failed to send SIGCONT to mpv")
 	}
+}
+
+func (player *Player) _stop() {
+	mpv := player.mpv.Load()
+	if mpv == nil {
+		// Wrms.Next() may race with Player.runMpv() therefore this must not be a hard error
+		llog.Warning("There is no mpv process to terminate")
+		return
+	}
+
+	// mpv is actually running.
+	if mpv.Process != nil {
+		mpv.Process.Signal(syscall.SIGTERM)
+	} else {
+		llog.Fatal("mpv process is not running yet")
+	}
+
+	player.mpv.Store(nil)
 }
 
 func (player *Player) Search(pattern string) chan []Song {
