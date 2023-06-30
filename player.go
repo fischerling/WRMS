@@ -208,6 +208,7 @@ func (player *Player) _stop() {
 
 	// mpv is actually running.
 	if mpv.Process != nil {
+		llog.Debug("Send SIGTERM to mpv subprocess")
 		mpv.Process.Signal(syscall.SIGTERM)
 	} else {
 		llog.Fatal("mpv process is not running yet")
