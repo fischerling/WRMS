@@ -225,20 +225,10 @@
         playing.appendChild(songLabel);
       }
 
-      let socket_url = "ws://"+location.hostname + (location.port ? ":" + location.port: "") + "/ws";
-      let socket = new WebSocket(socket_url);
-      console.log("Attempting Connection...");
+      let events = new EventSource("/events");
 
-      socket.onopen = () => {
-        console.log("Successfully Connected");
-      };
-      
-      socket.onclose = event => {
-        console.log("Socket Closed Connection: ", event);
-      };
-
-      socket.onmessage = message => {
-        console.log("Socket Received Message: ", message);
+      events.onmessage = message => {
+        console.log("Received Event: ", message);
         const cmd = JSON.parse(message.data);
         switch (cmd.cmd) {
           case "add":
@@ -275,10 +265,6 @@
             handleFinishSearch(cmd.id)
             break;
         }
-      };
-
-      socket.onerror = error => {
-        console.log("Socket Error: ", error);
       };
 
       function submitSearch() {

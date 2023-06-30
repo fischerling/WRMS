@@ -14,8 +14,6 @@ import (
 	"muhq.space/go/wrms/llog"
 
 	"github.com/google/uuid"
-
-	"nhooyr.io/websocket"
 )
 
 var wrms *Wrms
@@ -188,30 +186,29 @@ func nextHandler(w http.ResponseWriter, r *http.Request) {
 	genericControlHandler(w, r, "next")
 }
 
-func wsEndpoint(w http.ResponseWriter, r *http.Request) {
+func eventsEndpoint(w http.ResponseWriter, r *http.Request) {
 	connId, err := getConnId(w, r)
 	if err != nil {
 		return
 	}
 
-	ws, err := websocket.Accept(w, r, nil)
-	if err != nil {
-		llog.Warning("Accepting the websocket failed with %s", err)
-		return
-	}
+	// prepare the header
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	ctx, cancel := context.WithCancel(r.Context())
-	ctx = ws.CloseRead(ctx)
+
+	conn := newConnection(connId, w, ctx, cancel)
 
 	defer func() {
 		llog.Info("cancel context of connection %v", connId)
 		cancel()
+		conn.Close()
 	}()
 
-	conn := newConnection(connId, ws, ctx, cancel)
-	defer conn.Close()
-
-	llog.Info("New websocket connection with id %v", connId)
+	llog.Info("New SSE connection with id %v", connId)
 	err = wrms.initConn(conn)
 	if err != nil {
 		return
@@ -230,7 +227,7 @@ func setupRoutes() {
 	http.HandleFunc("/delete", deleteHandler)
 	http.HandleFunc("/next", nextHandler)
 	http.HandleFunc("/playpause", playPauseHandler)
-	http.HandleFunc("/ws", wsEndpoint)
+	http.HandleFunc("/events", eventsEndpoint)
 }
 
 func main() {

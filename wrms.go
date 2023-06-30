@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"sync"
 	"sync/atomic"
 
 	"muhq.space/go/wrms/llog"
 
 	"github.com/google/uuid"
-
-	"nhooyr.io/websocket"
 )
 
 type Song struct {
@@ -60,7 +60,8 @@ type Connection struct {
 	closing   atomic.Bool
 	refs      atomic.Int64
 	Events    chan Event
-	ws        *websocket.Conn
+	w         http.ResponseWriter
+	flusher   http.Flusher
 	ctx       context.Context
 	cancel    func()
 	nextEvent uint64
@@ -68,14 +69,20 @@ type Connection struct {
 
 const EVENT_BUFFER_SIZE = 3
 
-func newConnection(id uuid.UUID, ws *websocket.Conn, ctx context.Context, cncl func()) *Connection {
+func newConnection(id uuid.UUID, w http.ResponseWriter, ctx context.Context, cncl func()) *Connection {
+	// prepare the flusher
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		llog.Fatal("Flusher type assertion failed")
+	}
 
 	return &Connection{
-		Id:     id,
-		Events: make(chan Event, EVENT_BUFFER_SIZE),
-		ws:     ws,
-		ctx:    ctx,
-		cancel: cncl,
+		Id:      id,
+		Events:  make(chan Event, EVENT_BUFFER_SIZE),
+		w:       w,
+		flusher: flusher,
+		ctx:     ctx,
+		cancel:  cncl,
 	}
 }
 
@@ -105,7 +112,11 @@ func (conn *Connection) serve() {
 			delete(toSend, conn.nextEvent)
 			// We have not received the next event yet -> receive a new event
 		} else {
-			ev = <-conn.Events
+			select {
+			case ev = <-conn.Events:
+			case <-conn.ctx.Done():
+				return
+			}
 			// We received a future object -> store it and continue
 			if ev.Id > conn.nextEvent {
 				toSend[ev.Id] = &ev
@@ -121,12 +132,10 @@ func (conn *Connection) serve() {
 			return
 		}
 
-		llog.Debug("Sending ev %s to %s", string(data), conn.Id)
-		err = conn.ws.Write(conn.ctx, websocket.MessageText, data)
-		if err != nil {
-			llog.Warning("Sending the ev %s to %d failed with %s", string(data), conn.Id, err)
-			return
-		}
+		sdata := string(data)
+		llog.Debug("Sending ev %s to %s", sdata, conn.Id)
+		fmt.Fprintf(conn.w, "data: %s\n\n", sdata)
+		conn.flusher.Flush()
 	}
 }
 
@@ -226,11 +235,8 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 			return err
 		}
 
-		err = conn.ws.Write(conn.ctx, websocket.MessageText, data)
-		if err != nil {
-			llog.Warning("Sending the initial commands failed with %s", err)
-			return err
-		}
+		fmt.Fprintf(conn.w, "data: %s\n\n", string(data))
+		conn.flusher.Flush()
 	}
 
 	return nil
