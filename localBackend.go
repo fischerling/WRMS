@@ -121,7 +121,7 @@ func (b *LocalBackend) findSongs() {
 	b.insert(songs)
 }
 
-func (b *LocalBackend) Play(song *Song, player *Player) {
+func (b *LocalBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + song.Uri)
 }
 

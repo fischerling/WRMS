@@ -91,7 +91,7 @@ func (b *UploadBackend) OnSongFinished(song *Song) {
 	os.Remove(songPath)
 }
 
-func (b *UploadBackend) Play(song *Song, player *Player) {
+func (b *UploadBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + path.Join(b.uploadDir, song.Uri))
 }
 

@@ -64,7 +64,7 @@ func NewSpotify(config *SpotifyConfig) (*SpotifyBackend, error) {
 
 func (_ *SpotifyBackend) OnSongFinished(*Song) {}
 
-func (spotify *SpotifyBackend) Play(song *Song, player *Player) {
+func (spotify *SpotifyBackend) Play(song *Song, player Player) {
 	trackID := song.Uri
 	session := spotify.session
 	llog.Debug("Loading track for play: %v", trackID)

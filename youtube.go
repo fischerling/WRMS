@@ -18,7 +18,7 @@ func NewYoutubeBackend() *YoutubeBackend {
 
 func (_ *YoutubeBackend) OnSongFinished(*Song) {}
 
-func (_ *YoutubeBackend) Play(song *Song, player *Player) {
+func (_ *YoutubeBackend) Play(song *Song, player Player) {
 	player.PlayUri("https://youtube.com/watch?v=" + song.Uri)
 }
 

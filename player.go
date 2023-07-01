@@ -11,6 +11,17 @@ import (
 	"muhq.space/go/wrms/llog"
 )
 
+type Player interface {
+	Play(*Song)
+	Playing() bool
+	Search(string) chan []Song
+	PlayUri(string)
+	PlayData(io.Reader)
+	Pause()
+	Continue()
+	Stop()
+}
+
 // command struct used to serialize player commands
 type cmd struct {
 	cmd  string
@@ -18,14 +29,14 @@ type cmd struct {
 	uri  string
 }
 
-type Player struct {
+type MpvPlayer struct {
 	Backends map[string]Backend
 	wrms     *Wrms
 	mpv      atomic.Pointer[exec.Cmd]
 	cmdQueue chan cmd
 }
 
-func NewPlayer(wrms *Wrms, backends []string) *Player {
+func NewMpvPlayer(wrms *Wrms, backends []string) *MpvPlayer {
 	availableBackends := map[string]Backend{}
 
 	var b Backend
@@ -53,7 +64,7 @@ func NewPlayer(wrms *Wrms, backends []string) *Player {
 		}
 	}
 
-	p := &Player{
+	p := &MpvPlayer{
 		Backends: availableBackends,
 		wrms:     wrms,
 		cmdQueue: make(chan cmd)}
@@ -72,7 +83,7 @@ func mpvArgv(uri string) []string {
 	return cmd
 }
 
-func (player *Player) startMpv(uri string) *exec.Cmd {
+func (player *MpvPlayer) startMpv(uri string) *exec.Cmd {
 	if player.mpv.Load() != nil {
 		llog.Fatal("Player has already an mpv subprocess")
 	}
@@ -88,7 +99,7 @@ func (player *Player) startMpv(uri string) *exec.Cmd {
 	return mpv
 }
 
-func (player *Player) runMpv() {
+func (player *MpvPlayer) runMpv() {
 	// Remember the song we are playing
 	// TODO: This is potentially racy
 	currentSong := wrms.CurrentSong.Load()
@@ -113,7 +124,7 @@ func (player *Player) runMpv() {
 	}
 }
 
-func (p *Player) serveCmds() {
+func (p *MpvPlayer) serveCmds() {
 	for cmd := range p.cmdQueue {
 		switch cmd.cmd {
 		case "playData":
@@ -131,27 +142,31 @@ func (p *Player) serveCmds() {
 }
 
 // Play arbitrary media using mpv
-func (p *Player) PlayUri(uri string)      { p.cmdQueue <- cmd{cmd: "playUri", uri: uri} }
-func (p *Player) PlayData(data io.Reader) { p.cmdQueue <- cmd{cmd: "playData", data: data} }
+func (p *MpvPlayer) PlayUri(uri string)      { p.cmdQueue <- cmd{cmd: "playUri", uri: uri} }
+func (p *MpvPlayer) PlayData(data io.Reader) { p.cmdQueue <- cmd{cmd: "playData", data: data} }
 
 // Controls
-func (p *Player) Pause()    { p.cmdQueue <- cmd{cmd: "pause"} }
-func (p *Player) Continue() { p.cmdQueue <- cmd{cmd: "continue"} }
-func (p *Player) Stop()     { p.cmdQueue <- cmd{cmd: "stop"} }
-func (p *Player) Close()    { close(p.cmdQueue) }
+func (p *MpvPlayer) Pause()    { p.cmdQueue <- cmd{cmd: "pause"} }
+func (p *MpvPlayer) Continue() { p.cmdQueue <- cmd{cmd: "continue"} }
+func (p *MpvPlayer) Stop()     { p.cmdQueue <- cmd{cmd: "stop"} }
+func (p *MpvPlayer) Close()    { close(p.cmdQueue) }
 
 // Double dispatch play entry point
-func (p *Player) Play(song *Song) {
+func (p *MpvPlayer) Play(song *Song) {
 	llog.Info("Start playing %v", song)
 	p.Backends[song.Source].Play(song, p)
 }
 
-func (player *Player) _playUri(uri string) {
+func (p *MpvPlayer) Playing() bool {
+	return p.mpv.Load() != nil
+}
+
+func (player *MpvPlayer) _playUri(uri string) {
 	player.startMpv(uri)
 	go player.runMpv()
 }
 
-func (player *Player) _playData(data io.Reader) {
+func (player *MpvPlayer) _playData(data io.Reader) {
 	mpv := player.startMpv("-")
 
 	stdin, err := mpv.StdinPipe()
@@ -170,7 +185,7 @@ func (player *Player) _playData(data io.Reader) {
 	go player.runMpv()
 }
 
-func (player *Player) _pause() {
+func (player *MpvPlayer) _pause() {
 	mpv := player.mpv.Load()
 	if mpv == nil {
 		llog.Warning("No mpv process to pause")
@@ -184,7 +199,7 @@ func (player *Player) _pause() {
 	}
 }
 
-func (player *Player) _continue() {
+func (player *MpvPlayer) _continue() {
 	mpv := player.mpv.Load()
 	if mpv == nil {
 		llog.Warning("Continue Play but there is no running mpv process to continue")
@@ -198,7 +213,7 @@ func (player *Player) _continue() {
 	}
 }
 
-func (player *Player) _stop() {
+func (player *MpvPlayer) _stop() {
 	mpv := player.mpv.Load()
 	if mpv == nil {
 		// Wrms.Next() may race with Player.runMpv() therefore this must not be a hard error
@@ -217,7 +232,7 @@ func (player *Player) _stop() {
 	player.mpv.Store(nil)
 }
 
-func (player *Player) Search(pattern string) chan []Song {
+func (player *MpvPlayer) Search(pattern string) chan []Song {
 	var wg sync.WaitGroup
 	wg.Add(len(player.Backends))
 

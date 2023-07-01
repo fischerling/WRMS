@@ -164,7 +164,7 @@ type Wrms struct {
 	Songs       []Song
 	queue       Playlist
 	CurrentSong atomic.Pointer[Song]
-	Player      *Player
+	Player      Player
 	Playing     bool
 	Config      Config
 	eventId     atomic.Uint64
@@ -173,7 +173,7 @@ type Wrms struct {
 func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
 	wrms.Config = config
-	wrms.Player = NewPlayer(&wrms, config.Backends)
+	wrms.Player = NewMpvPlayer(&wrms, config.Backends)
 	return &wrms
 }
 
@@ -300,8 +300,8 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 func (wrms *Wrms) Next() {
 	wrms.rwlock.Lock()
 
-	// Terminate the mpv process playing the current song
-	if wrms.Player.mpv.Load() != nil {
+	// Terminate the Player if it is currently playing
+	if wrms.Player.Playing() {
 		wrms.Player.Stop()
 	}
 
@@ -372,10 +372,10 @@ func (wrms *Wrms) PlayPause() {
 		return
 	}
 
-	// Wrms has an active mpv process -> continue playing
-	if wrms.Player.mpv.Load() != nil {
+	// The player is playing -> continue playing
+	if wrms.Player.Playing() {
 		wrms.Player.Continue()
-		// Wrms has a current song but no mpv process playing it -> start a new one
+		// The player is stopped -> start it
 	} else {
 		wrms.Player.Play(currentSong)
 	}
