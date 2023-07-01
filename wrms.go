@@ -394,7 +394,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 			continue
 		}
 
-		llog.Info("Adjusting song %s (ptr=%p)", s.Uri, s)
+		llog.Info("Adjusting song %v (ptr=%p)", s, s)
 		switch vote {
 		case "up":
 			if _, ok := s.Upvotes[connId]; ok {
@@ -405,6 +405,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 			if _, ok := s.Downvotes[connId]; ok {
 				delete(s.Downvotes, connId)
 				s.Weight += 2
+				llog.Debug("Flip downvote")
 			} else {
 				s.Weight += 1
 			}
@@ -419,6 +420,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 
 			if _, ok := s.Upvotes[connId]; ok {
 				delete(s.Upvotes, connId)
+				llog.Debug("Flip upvote")
 				s.Weight -= 2
 			} else {
 				s.Weight -= 1
