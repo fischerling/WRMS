@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-func TestAdd(t *testing.T) {
+func TestPlAdd(t *testing.T) {
 	var pl Playlist
 	s := NewDummySong("Foo", "Bar")
 	pl.Add(&s)
@@ -12,7 +12,7 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func TestAddPop(t *testing.T) {
+func TestPlAddPop(t *testing.T) {
 	var pl Playlist
 	s := NewDummySong("Foo", "Bar")
 	pl.Add(&s)
@@ -33,7 +33,7 @@ func TestAddPop(t *testing.T) {
 	}
 }
 
-func TestAddPopTwice(t *testing.T) {
+func TestPlAddPopTwice(t *testing.T) {
 	var pl Playlist
 	s1 := NewDummySong("Foo", "Bar")
 	s2 := NewDummySong("Nasen", "Baer")
@@ -62,7 +62,7 @@ func TestAddPopTwice(t *testing.T) {
 	}
 }
 
-func TestAdd2AdjustPop(t *testing.T) {
+func TestPlAdd2AdjustPop(t *testing.T) {
 	var pl Playlist
 	s1 := NewDummySong("Foo", "Bar")
 	s2 := NewDummySong("Nasen", "Baer")
@@ -84,6 +84,52 @@ func TestAdd2AdjustPop(t *testing.T) {
 
 	if ps != &s2 {
 		t.Log("the popped ptr should match the one adjusted")
+		t.Fail()
+	}
+}
+
+func TestPlAdd3AdjustAdjustPop(t *testing.T) {
+	var pl Playlist
+	s1 := NewDummySong("Foo", "Bar")
+	s2 := NewDummySong("Nasen", "Baer")
+	s3 := NewDummySong("Hut", "Traeger")
+	pl.Add(&s1)
+	pl.Add(&s2)
+	pl.Add(&s3)
+
+	if len(pl) != 3 {
+		t.Log("len should be 3")
+		t.Fail()
+	}
+
+	s1.Weight += 1
+	pl.Adjust(&s1)
+
+	s2.Weight -= 1
+	pl.Adjust(&s2)
+
+	s3.Weight += 1
+	pl.Adjust(&s3)
+
+	ps := pl.PopSong()
+	if len(pl) != 2 {
+		t.Log("len should be 2")
+		t.Fail()
+	}
+
+	if ps == &s2 {
+		t.Log("the popped ptr is the downvoted one")
+		t.Fail()
+	}
+
+	ps = pl.PopSong()
+	if len(pl) != 1 {
+		t.Log("len should be 1")
+		t.Fail()
+	}
+
+	if ps == &s2 {
+		t.Log("the popped ptr is the downvoted one")
 		t.Fail()
 	}
 }
