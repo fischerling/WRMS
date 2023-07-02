@@ -83,3 +83,18 @@ func TestWrmsUpUpDownNextNext(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestWrmsDoubleAdd(t *testing.T) {
+	wrms := Wrms{Player: &mockPlayer{}}
+	s1 := NewDummySong("song1", "snfmt")
+
+	llog.Info("Double Add test")
+	wrms.AddSong(s1)
+	wrms.AdjustSongWeight(alice, s1.Uri, "up")
+	wrms.Next()
+
+	s1 = NewDummySong("song1", "snfmt")
+	wrms.AddSong(s1)
+	wrms.AdjustSongWeight(alice, s1.Uri, "up")
+	wrms.Next()
+}
