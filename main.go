@@ -186,6 +186,30 @@ func nextHandler(w http.ResponseWriter, r *http.Request) {
 	genericControlHandler(w, r, "next")
 }
 
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	connId, err := getConnId(w, r)
+	if err != nil {
+		return
+	}
+
+	_pw, err := io.ReadAll(r.Body)
+	if err != nil {
+		llog.Warning("Failed to read admin password from request body")
+		http.Error(w, "Failed to read asdmin password from request body", http.StatusInternalServerError)
+		return
+	}
+
+	pw := string(_pw)
+
+	if pw == wrms.Config.AdminPW {
+		wrms.Config.Admins = append(wrms.Config.Admins, connId)
+	} else {
+		llog.Warning("Wrong admin password: %s", pw)
+		http.Error(w, "Wrong admin password", http.StatusUnauthorized)
+		return
+	}
+}
+
 func eventsEndpoint(w http.ResponseWriter, r *http.Request) {
 	connId, err := getConnId(w, r)
 	if err != nil {
@@ -227,6 +251,7 @@ func setupRoutes() {
 	http.HandleFunc("/delete", deleteHandler)
 	http.HandleFunc("/next", nextHandler)
 	http.HandleFunc("/playpause", playPauseHandler)
+	http.HandleFunc("/admin", adminHandler)
 	http.HandleFunc("/events", eventsEndpoint)
 }
 
@@ -239,20 +264,10 @@ func main() {
 	flag.StringVar(&config.LocalMusicDir,
 		"serve-music-dir", config.LocalMusicDir, "local music directory to serve")
 	flag.StringVar(&config.UploadDir, "upload-dir", config.UploadDir, "directory to upload songs to")
-	genAdmin := flag.Bool("generate-admin", false, "generate an admin uuid")
 	flag.Parse()
 
 	if *backends != "" {
 		config.Backends = strings.Split(*backends, " ")
-	}
-
-	if *genAdmin {
-		var err error
-		config.Admin, err = uuid.NewRandom()
-		if err != nil {
-			llog.Fatal("Failed to create random UUID: %v", err)
-		}
-		llog.Info("Admin uuid: %v", config.Admin)
 	}
 
 	llog.SetLogLevelFromString(config.LogLevel)

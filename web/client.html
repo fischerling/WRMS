@@ -345,6 +345,14 @@
         document.getElementById("nextbutton").addEventListener("click", function() {
           new HttpClient().get("/next", console.log);
         });
+        {{else}}
+        document.getElementById("becomeAdmin").addEventListener("click", function() {
+          let pw = prompt("Enter admin password", "");
+          new HttpClient().post("/admin", pw, () => {
+            location.reload();
+            return false;
+          });
+        });
         {{end}}
       }
     </script>
@@ -382,6 +390,10 @@
       <button id="ppbutton">Play</button>
       <button id="nextbutton">Next</button>
     </div>
+    {{end}}
+
+    {{if not .IsAdmin}}
+    <div style='float: right;'><button id="becomeAdmin">Become Admin</button></div>
     {{end}}
 
     <h2>Playlist</h2>

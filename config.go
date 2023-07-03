@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/google/uuid"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 	"muhq.space/go/wrms/llog"
 )
@@ -17,7 +18,8 @@ type Config struct {
 	UploadDir     string         `yaml:"upload-dir"`
 	LogLevel      string         `yaml:"loglevel"`
 	MpvFlags      string         `yaml:"mpv_flags"`
-	Admin         uuid.UUID      `yaml:"admin"`
+	AdminPW       string         `yaml:"admin-password"`
+	Admins        []uuid.UUID    `yaml:"admins"`
 	Spotify       *SpotifyConfig `yaml:"spotify"`
 	HasUpload     bool
 }
@@ -28,7 +30,7 @@ func defaultConfig() Config {
 }
 
 func (c Config) IsAdmin(id uuid.UUID) bool {
-	return c.Admin == id
+	return slices.Contains(c.Admins, id)
 }
 
 func findConfig() string {
