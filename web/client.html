@@ -19,6 +19,26 @@
       .searchResult:hover {
         background-color: #999;
       }
+
+      .songDetails, .advancedSearch {
+        display: inline-block;
+      }
+
+      .songDetails > summary {
+        list-style: none;
+      }
+
+      .songSummary::-webkit-details-marker {
+        display: none
+      }
+
+      .songSummary::after {
+        content: ' ►';
+      }
+
+      details[open] > .songSummary:after {
+        content: ' ▼';
+      }
     </style>
 
     <script>
@@ -85,9 +105,39 @@
       }
 
       function newSourceLabel(song) {
-         const sourceLabel = document.createElement("SMALL");
-         sourceLabel.appendChild(document.createTextNode(" (" + song.source + ")"));
-         return sourceLabel;
+        const sourceLabel = document.createElement("SMALL");
+        sourceLabel.appendChild(document.createTextNode(" (" + song.source + ")"));
+        return sourceLabel;
+      }
+
+      function appendSongDetails(song, details) {
+        let possibleDetails = ['upvotes', 'downvotes', 'album', 'year'];
+        for (const detail of possibleDetails) {
+          if (Object.hasOwn(song, detail)) {
+            let value = song[detail];
+            if (!value) {
+              continue
+            }
+            let label = detail.charAt(0).toUpperCase() + detail.slice(1);
+            details.appendChild(document.createTextNode(label + ': ' + value + ' '));
+          }
+        }
+      }
+
+      function newSong(song) {
+        let songElem = document.createElement('DETAILS');
+        songElem.className = 'songDetails';
+
+        let songSummary = document.createElement('SUMMARY');
+        songSummary.className = 'songSummary';
+
+        songSummary.appendChild(document.createTextNode(song.weight + ' ' + formatSong(song)));
+        songSummary.appendChild(newSourceLabel(song));
+
+        appendSongDetails(song, songElem);
+
+        songElem.appendChild(songSummary);
+        return songElem;
       }
 
       function renderPlaylist() {
@@ -145,8 +195,8 @@
           listItem.appendChild(upvoteBtn);
           listItem.appendChild(downvoteBtn);
 
-          listItem.appendChild(document.createTextNode(song.weight + ' ' + formatSong(song)));
-          listItem.appendChild(newSourceLabel(song));
+          listItem.appendChild(newSong(song));
+
           {{if .IsAdmin}}
           let delBtn = document.createElement("button");
           delBtn.style.marginLeft = 10 + "px";
