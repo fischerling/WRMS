@@ -18,7 +18,7 @@
 
 ## Web Backend
 
-- [ ] Implement an event endpoint
+- [X] Implement an event endpoint
 
 ## Backends
 
