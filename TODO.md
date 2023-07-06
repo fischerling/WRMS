@@ -5,6 +5,9 @@
   - [X] allow admin to skip songs
 - [X] continue playback when song is added to empty playlist
 - [ ] support advanced search
+  - [X] client
+  - [ ] spotify
+  - [ ] local
 - [ ] Show more Song information
   - [ ] Fetch and show cover art
   - [ ] Show a song's Album
