@@ -8,9 +8,9 @@
   - [X] client
   - [ ] spotify
   - [ ] local
-- [ ] Show more Song information
+- [X] Show more Song information
   - [ ] Fetch and show cover art
-  - [ ] Show a song's Album
+  - [X] Show a song's Album
 
 ## Fronted
 
