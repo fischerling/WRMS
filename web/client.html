@@ -412,8 +412,15 @@
     <h2>Add your song</h2>
     <div id="add">
       <form id="searchForm" onsubmit="return submitSearch()">
-        <input id="searchInput" name="pattern" type="text" value="Title/Artist/Album/...", onclick="this.select();">
+        <input id="searchInput" name="pattern" type="text" placeholder="Title/Artist/Album/...", onclick="this.select();">
         <button id="searchButton">Search</button>
+
+        <details class='advancedSearch'>
+          <summary>Advanced Search</summary>
+          <input id="searchTitel" name="titel" type="text" placeholder="Title", onclick="this.select();">
+          <input id="searchArtist" name="artist" type="text" placeholder="Artist", onclick="this.select();">
+          <input id="searchAlbum" name="album" type="text" placeholder="Album", onclick="this.select();">
+        </details>
       </form>
 
       {{if .Config.HasUpload}}
