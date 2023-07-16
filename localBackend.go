@@ -33,7 +33,9 @@ func NewLocalBackend(musicDir string) *LocalBackend {
 	CREATE TABLE songs (
 		Uri text NOT NULL PRIMARY KEY,
 		Title text,
-		Artist text
+		Artist text,
+		Album text,
+		Year int
 	);
 	`
 	_, err = b.db.Exec(sqlStmt)
@@ -54,14 +56,14 @@ func (b *LocalBackend) insert(songs []*Song) {
 		llog.Fatal("Starting insert transaction failed: %q", err)
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO songs(Uri, Title, Artist) VALUES(?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO songs(Uri, Title, Artist, Album, Year) VALUES(?, ?, ?, ?, ?)")
 	if err != nil {
 		llog.Fatal("Preparing inser statement failed: %q", err)
 	}
 	defer stmt.Close()
 
 	for _, song := range songs {
-		_, err = stmt.Exec(song.Uri, song.Title, song.Artist)
+		_, err = stmt.Exec(song.Uri, song.Title, song.Artist, song.Album, song.Year)
 		if err != nil {
 			llog.Fatal("Executing insert statement failed: %q", err)
 		}
@@ -110,6 +112,8 @@ func (b *LocalBackend) findSongs() {
 		}
 
 		s := NewSong(m.Title(), m.Artist(), "local", p)
+		s.Album = m.Album()
+		s.Year = m.Year()
 		songs = append(songs, &s)
 		return nil
 	})
@@ -125,8 +129,8 @@ func (b *LocalBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + song.Uri)
 }
 
-func (b *LocalBackend) Search(keyword string) (results []Song) {
-	pattern := strings.ToLower(keyword)
+func (b *LocalBackend) Search(patterns map[string]string) (results []Song) {
+	pattern := strings.ToLower(patterns["pattern"])
 
 	query := fmt.Sprintf("SELECT * FROM songs WHERE Title LIKE '%%%s%%' OR Artist LIKE '%%%s%%'",
 		pattern, pattern)
@@ -142,13 +146,16 @@ func (b *LocalBackend) Search(keyword string) (results []Song) {
 		var uri string
 		var title string
 		var artist string
+		var album string
+		var year int
 
-		err = rows.Scan(&uri, &title, &artist)
+		err = rows.Scan(&uri, &title, &artist, &album, &year)
 		if err != nil {
 			llog.Warning("Scanning query result failed: %q", err)
 		}
 
-		results = append(results, NewSong(title, artist, "local", uri))
+		s := NewDetailedSong(title, artist, "local", uri, album, year)
+		results = append(results, s)
 	}
 
 	err = rows.Err()

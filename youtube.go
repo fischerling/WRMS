@@ -27,8 +27,13 @@ type YoutubeDlSearchResult struct {
 	Title string
 }
 
-func (b *YoutubeBackend) Search(pattern string) []Song {
-	searchOption := fmt.Sprintf("ytsearch%d:%s", b.searchResults, pattern)
+func (b *YoutubeBackend) Search(patterns map[string]string) []Song {
+	pattern := ""
+	for _, v := range patterns {
+		pattern += v + " "
+	}
+
+	searchOption := fmt.Sprintf("ytsearch%d:%s", b.searchResults, pattern[:len(pattern)-1])
 	llog.Debug("Search youtube using: youtube-dl -j %s", searchOption)
 	results, err := exec.Command("yt-dlp", "-j", searchOption).Output()
 

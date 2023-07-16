@@ -77,7 +77,7 @@ func (b *UploadBackend) upload(w http.ResponseWriter, r *http.Request) {
 		artist = "Unknown"
 	}
 
-	wrms.AddSong(NewSong(title, artist, "upload", fileName))
+	wrms.AddSong(NewDetailedSong(title, artist, "upload", fileName, m.Album(), m.Year()))
 	fmt.Fprintf(w, "Added uploaded song %s", string(fileName))
 }
 
@@ -95,6 +95,6 @@ func (b *UploadBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + path.Join(b.uploadDir, song.Uri))
 }
 
-func (b *UploadBackend) Search(keyword string) []Song {
+func (b *UploadBackend) Search(map[string]string) []Song {
 	return nil
 }

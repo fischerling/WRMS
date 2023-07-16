@@ -75,18 +75,26 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pattern := r.URL.Query().Get("pattern")
-	if pattern == "" {
+	searchQuery := map[string]string{}
+	patterns := []string{"pattern", "title", "album", "artist"}
+	for _, pattern := range patterns {
+		value := r.URL.Query().Get(pattern)
+		if value != "" {
+			searchQuery[pattern] = value
+		}
+	}
+
+	if len(searchQuery) == 0 {
 		http.Error(w, "No search pattern provided", http.StatusBadRequest)
 		return
 	}
 
 	id := wrms.eventId.Add(1)
 
-	llog.Debug("Searching for %s", pattern)
+	llog.Debug("Searching for %v", searchQuery)
 
 	start := time.Now()
-	resultsChan := wrms.Player.Search(pattern)
+	resultsChan := wrms.Search(searchQuery)
 
 	go func() {
 		for result := range resultsChan {
@@ -96,10 +104,10 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		conn.Send(Event{Event: "finish-search", Id: id})
-		llog.Debug("searching for %s took %v", pattern, time.Since(start))
+		llog.Debug("searching for %v took %v", searchQuery, time.Since(start))
 	}()
 
-	fmt.Fprintf(w, "Starting search for %s", pattern)
+	fmt.Fprintf(w, "Starting search for %v", searchQuery)
 }
 
 func genericVoteHandler(w http.ResponseWriter, r *http.Request, vote string) {

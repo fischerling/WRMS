@@ -19,13 +19,29 @@ type Song struct {
 	Source    string                 `json:"source"`
 	Uri       string                 `json:"uri"`
 	Weight    int                    `json:"weight"`
+	Album     string                 `json:"album"`
+	Year      int                    `json:"year"`
 	index     int                    `json:"-"` // used by heap.Interface
 	Upvotes   map[uuid.UUID]struct{} `json:"-"`
 	Downvotes map[uuid.UUID]struct{} `json:"-"`
 }
 
 func NewSong(title, artist, source, uri string) Song {
-	return Song{title, artist, source, uri, 0, 0, map[uuid.UUID]struct{}{}, map[uuid.UUID]struct{}{}}
+	return Song{
+		Title:     title,
+		Artist:    artist,
+		Source:    source,
+		Uri:       uri,
+		Upvotes:   map[uuid.UUID]struct{}{},
+		Downvotes: map[uuid.UUID]struct{}{},
+	}
+}
+
+func NewDetailedSong(title, artist, source, uri, album string, year int) Song {
+	s := NewSong(title, artist, source, uri)
+	s.Album = album
+	s.Year = year
+	return s
 }
 
 func NewSongFromJson(data []byte) (Song, error) {
@@ -165,7 +181,7 @@ type Wrms struct {
 	queue       Playlist
 	CurrentSong atomic.Pointer[Song]
 	Player      Player
-	Playing     bool
+	playing     bool
 	Config      Config
 	eventId     atomic.Uint64
 }
@@ -197,7 +213,7 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 	conn.nextEvent = curEventId + 1
 
 	initialCmds := []Event{}
-	if wrms.Playing {
+	if wrms.playing {
 		var songs []Song
 		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
 			songs = []Song{*currentSong}
@@ -261,7 +277,7 @@ func (wrms *Wrms) Broadcast(ev Event) {
 func (wrms *Wrms) AddSong(song Song) {
 	wrms.rwlock.Lock()
 
-	startPlayingAgain := wrms.Playing && wrms.CurrentSong.Load() == nil
+	startPlayingAgain := wrms.playing && wrms.CurrentSong.Load() == nil
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
@@ -338,7 +354,7 @@ func (wrms *Wrms) _next() {
 
 	cmd := "next"
 	// We are playing -> start playing the next song
-	if wrms.Playing {
+	if wrms.playing {
 		wrms.Player.Play(next)
 		cmd = "play"
 	}
@@ -351,10 +367,10 @@ func (wrms *Wrms) _next() {
 func (wrms *Wrms) PlayPause() {
 	wrms.rwlock.Lock()
 	// Toggle the playback state
-	wrms.Playing = !wrms.Playing
+	wrms.playing = !wrms.playing
 
 	// Wrms was playing -> pause the player
-	if !wrms.Playing {
+	if !wrms.playing {
 		wrms.Player.Pause()
 		wrms.rwlock.Unlock()
 		wrms.Broadcast(newNotification("pause"))
@@ -451,4 +467,8 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 		wrms.Broadcast(newEvent("update", []Song{*s}))
 		break
 	}
+}
+
+func (wrms *Wrms) Search(pattern map[string]string) chan []Song {
+	return wrms.Player.Search(pattern)
 }

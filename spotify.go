@@ -96,8 +96,16 @@ func (spotify *SpotifyBackend) Play(song *Song, player Player) {
 	player.PlayData(audioFile)
 }
 
-func (spotify *SpotifyBackend) Search(keyword string) []Song {
+func (spotify *SpotifyBackend) Search(patterns map[string]string) []Song {
 	session := spotify.session
+	keyword := ""
+	for _, p := range []string{"pattern", "title", "artist", "album"} {
+		if v, ok := patterns[p]; ok {
+			keyword = v
+			break
+		}
+	}
+
 	resp, err := session.Mercury().Search(keyword, 12, session.Country(), session.Username())
 
 	if err != nil {
@@ -119,8 +127,9 @@ func (spotify *SpotifyBackend) Search(keyword string) []Song {
 	results := []Song{}
 	for _, track := range res.Tracks.Hits {
 		uriParts := strings.Split(track.Uri, ":")
-		results = append(results, NewSong(track.Name, track.Artists[0].Name,
-			"spotify", uriParts[len(uriParts)-1]))
+		s := NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts)-1])
+		s.Album = track.Album.Name
+		results = append(results, s)
 	}
 
 	return results
