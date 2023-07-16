@@ -72,7 +72,9 @@ func newNotification(notification string) Event {
 }
 
 type Connection struct {
+	wrms      *Wrms
 	Id        uuid.UUID
+	nr        uint64
 	closing   atomic.Bool
 	refs      atomic.Int64
 	Events    chan Event
@@ -85,21 +87,29 @@ type Connection struct {
 
 const EVENT_BUFFER_SIZE = 3
 
-func newConnection(id uuid.UUID, w http.ResponseWriter, ctx context.Context, cncl func()) *Connection {
+func (wrms *Wrms) newConnection(id uuid.UUID,
+	w http.ResponseWriter,
+	ctx context.Context,
+	cncl func()) *Connection {
 	// prepare the flusher
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		llog.Fatal("Flusher type assertion failed")
 	}
 
-	return &Connection{
+	conn := &Connection{
+		wrms:    wrms,
 		Id:      id,
+		nr:      wrms.nextConnNr.Add(1),
 		Events:  make(chan Event, EVENT_BUFFER_SIZE),
 		w:       w,
 		flusher: flusher,
 		ctx:     ctx,
 		cancel:  cncl,
 	}
+
+	wrms.addConn(conn)
+	return conn
 }
 
 func (c *Connection) Send(ev Event) {
@@ -175,6 +185,7 @@ func (c *Connection) Close() {
 
 type Wrms struct {
 	Connections sync.Map
+	nextConnNr  atomic.Uint64
 	// The rwlock must be held when using most internal state
 	rwlock      sync.RWMutex
 	Songs       []Song
@@ -200,12 +211,15 @@ func (wrms *Wrms) addConn(conn *Connection) {
 
 func (wrms *Wrms) delConn(conn *Connection) {
 	llog.DDebug("Deleting Connection %s", conn.Id)
-	wrms.Connections.Delete(conn.Id)
+	_oldConn, _ := wrms.Connections.Load(conn.Id)
+	oldConn := _oldConn.(*Connection)
+	// Only delete the connection if no newer one is currently active
+	if oldConn.nr == conn.nr {
+		wrms.Connections.Delete(conn.Id)
+	}
 }
 
 func (wrms *Wrms) initConn(conn *Connection) error {
-	wrms.addConn(conn)
-
 	wrms.rwlock.RLock()
 	defer wrms.rwlock.RUnlock()
 

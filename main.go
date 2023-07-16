@@ -232,7 +232,7 @@ func eventsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithCancel(r.Context())
 
-	conn := newConnection(connId, w, ctx, cancel)
+	conn := wrms.newConnection(connId, w, ctx, cancel)
 
 	defer func() {
 		llog.Info("cancel context of connection %v", connId)
