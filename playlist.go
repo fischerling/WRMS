@@ -61,3 +61,16 @@ func (pl *Playlist) RemoveSong(s *Song) {
 	heap.Remove(pl, s.index)
 	llog.DDebug("removing song %p in the playlist (%p) -> %v", s, pl, pl)
 }
+
+func (pl *Playlist) OrderedList() []*Song {
+	songs := make([]*Song, 0, pl.Len())
+
+	cpy := make(Playlist, 0, pl.Len())
+	copy(cpy, *pl)
+
+	for cpy.Len() > 0 {
+		songs = append(songs, heap.Pop(&cpy).(*Song))
+	}
+
+	return songs
+}

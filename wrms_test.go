@@ -9,14 +9,14 @@ import (
 
 type mockPlayer struct{}
 
-func (p *mockPlayer) Play(*Song)                              {}
-func (p *mockPlayer) PlayUri(string)                          {}
-func (p *mockPlayer) PlayData(io.Reader)                      {}
-func (p *mockPlayer) Search(pattern string) (res chan []Song) { return }
-func (p *mockPlayer) Playing() bool                           { return false }
-func (p *mockPlayer) Pause()                                  {}
-func (p *mockPlayer) Continue()                               {}
-func (p *mockPlayer) Stop()                                   {}
+func (p *mockPlayer) Play(*Song)                                         {}
+func (p *mockPlayer) PlayUri(string)                                     {}
+func (p *mockPlayer) PlayData(io.Reader)                                 {}
+func (p *mockPlayer) Search(pattern map[string]string) (res chan []Song) { return }
+func (p *mockPlayer) Playing() bool                                      { return false }
+func (p *mockPlayer) Pause()                                             {}
+func (p *mockPlayer) Continue()                                          {}
+func (p *mockPlayer) Stop()                                              {}
 
 var alice, _ = uuid.NewRandom()
 
@@ -28,6 +28,32 @@ func TestWrmsAdd(t *testing.T) {
 	if len(wrms.queue) != 1 {
 		t.Log("len should be 1")
 		t.Fail()
+	}
+}
+
+func TestWrmsAdd3Next3(t *testing.T) {
+	wrms := Wrms{Player: &mockPlayer{}}
+	songs := []Song{
+		NewDummySong("song1", "snfmt"),
+		NewDummySong("song2", "snfmt"),
+		NewDummySong("song3", "snfmt"),
+	}
+
+	for _, s := range songs {
+		wrms.AddSong(s)
+	}
+
+	if len(wrms.queue) != len(songs) {
+		t.Log("len should be 3")
+		t.Fail()
+	}
+
+	for _, s := range wrms.queue.OrderedList() {
+		wrms.Next()
+		if wrms.CurrentSong.Load().Uri != s.Uri {
+			t.Log("Not returning the next song")
+			t.Fail()
+		}
 	}
 }
 

@@ -240,11 +240,11 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 	if len(wrms.Songs) > 0 {
 		initialCmds = append(initialCmds, newEvent("add", wrms.Songs))
 
-		for _, song := range wrms.Songs {
+		for _, song := range wrms.queue.OrderedList() {
 			if _, ok := song.Upvotes[conn.Id]; ok {
-				upvoted = append(upvoted, song)
+				upvoted = append(upvoted, *song)
 			} else if _, ok := song.Downvotes[conn.Id]; ok {
-				downvoted = append(downvoted, song)
+				downvoted = append(downvoted, *song)
 			}
 		}
 	}
