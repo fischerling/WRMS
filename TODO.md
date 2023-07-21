@@ -18,6 +18,7 @@
 - [X] support incremental search results
   - [X] distinguish different search queries
 - [X] do not apply obsolete events
+- [ ] support timeBonus
 
 ## Web Backend
 

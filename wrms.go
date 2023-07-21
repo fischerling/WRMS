@@ -18,7 +18,7 @@ type Song struct {
 	Artist    string                 `json:"artist"`
 	Source    string                 `json:"source"`
 	Uri       string                 `json:"uri"`
-	Weight    int                    `json:"weight"`
+	Weight    float64                `json:"weight"`
 	Album     string                 `json:"album"`
 	Year      int                    `json:"year"`
 	index     int                    `json:"-"` // used by heap.Interface
@@ -295,6 +295,11 @@ func (wrms *Wrms) AddSong(song Song) {
 	wrms.Songs = append(wrms.Songs, song)
 	s := &wrms.Songs[len(wrms.Songs)-1]
 	wrms.queue.Add(s)
+
+	if wrms.Config.timeBonus != 0 {
+		llog.Info("Apply time bonus %v", wrms.Config.timeBonus)
+		wrms.queue.applyTimeBonus(wrms.Config.timeBonus)
+	}
 
 	wrms.rwlock.Unlock()
 

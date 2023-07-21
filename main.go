@@ -268,6 +268,7 @@ func main() {
 
 	flag.StringVar(&config.LogLevel, "loglevel", config.LogLevel, "log level")
 	flag.IntVar(&config.Port, "port", config.Port, "port to listen to")
+	flag.Float64Var(&config.timeBonus, "time-bonus", config.timeBonus, "weight bonus granted over time")
 	backends := flag.String("backends", "", "music backend to use")
 	flag.StringVar(&config.LocalMusicDir,
 		"serve-music-dir", config.LocalMusicDir, "local music directory to serve")
@@ -281,6 +282,7 @@ func main() {
 	llog.SetLogLevelFromString(config.LogLevel)
 	config.HasUpload = slices.Contains(config.Backends, "upload")
 
+	llog.Info("%v", config)
 	wrms = NewWrms(config)
 
 	setupRoutes()

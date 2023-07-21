@@ -22,6 +22,7 @@ type Config struct {
 	Admins        []uuid.UUID    `yaml:"admins"`
 	Spotify       *SpotifyConfig `yaml:"spotify"`
 	HasUpload     bool
+	timeBonus     float64 `yaml:time-bonus`
 }
 
 func defaultConfig() Config {
