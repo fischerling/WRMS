@@ -14,7 +14,7 @@ import (
 type Player interface {
 	Play(*Song)
 	Playing() bool
-	Search(map[string]string) chan []Song
+	Search(map[string]string) chan []*Song
 	PlayUri(string)
 	PlayData(io.Reader)
 	Pause()
@@ -232,11 +232,11 @@ func (player *MpvPlayer) _stop() {
 	player.mpv.Store(nil)
 }
 
-func (player *MpvPlayer) Search(pattern map[string]string) chan []Song {
+func (player *MpvPlayer) Search(pattern map[string]string) chan []*Song {
 	var wg sync.WaitGroup
 	wg.Add(len(player.Backends))
 
-	ch := make(chan []Song)
+	ch := make(chan []*Song)
 
 	for _, backend := range player.Backends {
 		backend := backend

@@ -96,7 +96,7 @@ func (spotify *SpotifyBackend) Play(song *Song, player Player) {
 	player.PlayData(audioFile)
 }
 
-func (spotify *SpotifyBackend) Search(patterns map[string]string) []Song {
+func (spotify *SpotifyBackend) Search(patterns map[string]string) []*Song {
 	session := spotify.session
 	keyword := ""
 	for _, p := range []string{"pattern", "title", "artist", "album"} {
@@ -110,7 +110,7 @@ func (spotify *SpotifyBackend) Search(patterns map[string]string) []Song {
 
 	if err != nil {
 		llog.Error("Failed to search: %s", err)
-		return []Song{}
+		return nil
 	}
 
 	res := resp.Results
@@ -124,7 +124,7 @@ func (spotify *SpotifyBackend) Search(patterns map[string]string) []Song {
 
 	llog.Debug("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
 
-	results := []Song{}
+	results := []*Song{}
 	for _, track := range res.Tracks.Hits {
 		uriParts := strings.Split(track.Uri, ":")
 		s := NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts)-1])

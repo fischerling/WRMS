@@ -27,7 +27,7 @@ type YoutubeDlSearchResult struct {
 	Title string
 }
 
-func (b *YoutubeBackend) Search(patterns map[string]string) []Song {
+func (b *YoutubeBackend) Search(patterns map[string]string) []*Song {
 	pattern := ""
 	for _, v := range patterns {
 		pattern += v + " "
@@ -41,7 +41,7 @@ func (b *YoutubeBackend) Search(patterns map[string]string) []Song {
 		llog.Error("youtube-dl failed with: %s", err)
 	}
 
-	songs := []Song{}
+	songs := []*Song{}
 	for _, l := range strings.Split(string(results), "\n") {
 		if l == "" {
 			continue

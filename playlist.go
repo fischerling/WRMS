@@ -78,7 +78,8 @@ func (pl *Playlist) OrderedList() []*Song {
 func (pl *Playlist) applyTimeBonus(timeBonus float64) {
 	for _, s := range *pl {
 		s.Weight += timeBonus
+		llog.DDebug("%p %v", s, s.Weight)
 	}
 	heap.Init(pl)
-	llog.DDebug("applying time bonus to the playlist")
+	llog.DDebug("applying time bonus to the playlist %v", *pl)
 }

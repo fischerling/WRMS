@@ -114,7 +114,7 @@ func (b *LocalBackend) findSongs() {
 		s := NewSong(m.Title(), m.Artist(), "local", p)
 		s.Album = m.Album()
 		s.Year = m.Year()
-		songs = append(songs, &s)
+		songs = append(songs, s)
 		return nil
 	})
 
@@ -129,7 +129,7 @@ func (b *LocalBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + song.Uri)
 }
 
-func (b *LocalBackend) Search(patterns map[string]string) (results []Song) {
+func (b *LocalBackend) Search(patterns map[string]string) (results []*Song) {
 	pattern := strings.ToLower(patterns["pattern"])
 
 	query := fmt.Sprintf("SELECT * FROM songs WHERE Title LIKE '%%%s%%' OR Artist LIKE '%%%s%%'",

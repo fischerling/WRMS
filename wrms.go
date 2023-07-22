@@ -26,8 +26,8 @@ type Song struct {
 	Downvotes map[uuid.UUID]struct{} `json:"-"`
 }
 
-func NewSong(title, artist, source, uri string) Song {
-	return Song{
+func NewSong(title, artist, source, uri string) *Song {
+	return &Song{
 		Title:     title,
 		Artist:    artist,
 		Source:    source,
@@ -37,33 +37,33 @@ func NewSong(title, artist, source, uri string) Song {
 	}
 }
 
-func NewDetailedSong(title, artist, source, uri, album string, year int) Song {
+func NewDetailedSong(title, artist, source, uri, album string, year int) *Song {
 	s := NewSong(title, artist, source, uri)
 	s.Album = album
 	s.Year = year
 	return s
 }
 
-func NewSongFromJson(data []byte) (Song, error) {
+func NewSongFromJson(data []byte) (*Song, error) {
 	var s Song
 	err := json.Unmarshal(data, &s)
 	if err != nil {
 		llog.Error("Failed to parse song data %s with %s", string(data), err)
-		return s, err
+		return nil, err
 	}
 
 	s.Upvotes = map[uuid.UUID]struct{}{}
 	s.Downvotes = map[uuid.UUID]struct{}{}
-	return s, nil
+	return &s, nil
 }
 
 type Event struct {
-	Event string `json:"cmd"`
-	Id    uint64 `json:"id"`
-	Songs []Song `json:"songs"`
+	Event string  `json:"cmd"`
+	Id    uint64  `json:"id"`
+	Songs []*Song `json:"songs"`
 }
 
-func (wrms *Wrms) newEvent(event string, songs []Song) Event {
+func (wrms *Wrms) newEvent(event string, songs []*Song) Event {
 	return Event{Id: wrms.eventId.Add(1), Event: event, Songs: songs}
 }
 
@@ -188,7 +188,7 @@ type Wrms struct {
 	nextConnNr  atomic.Uint64
 	// The rwlock must be held when using most internal state
 	rwlock      sync.RWMutex
-	Songs       []Song
+	Songs       []*Song
 	queue       Playlist
 	CurrentSong atomic.Pointer[Song]
 	Player      Player
@@ -234,23 +234,23 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 	}
 
 	if wrms.playing {
-		var songs []Song
+		var songs []*Song
 		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
-			songs = []Song{*currentSong}
+			songs = []*Song{currentSong}
 		}
 		initialCmds = append(initialCmds, wrms.newEvent("play", songs))
 	}
 
-	upvoted := []Song{}
-	downvoted := []Song{}
+	upvoted := []*Song{}
+	downvoted := []*Song{}
 	if len(wrms.Songs) > 0 {
 		initialCmds = append(initialCmds, wrms.newEvent("add", wrms.Songs))
 
 		for _, song := range wrms.queue.OrderedList() {
 			if _, ok := song.Upvotes[conn.Id]; ok {
-				upvoted = append(upvoted, *song)
+				upvoted = append(upvoted, song)
 			} else if _, ok := song.Downvotes[conn.Id]; ok {
-				downvoted = append(downvoted, *song)
+				downvoted = append(downvoted, song)
 			}
 		}
 	}
@@ -291,20 +291,21 @@ func (wrms *Wrms) Broadcast(ev Event) {
 	})
 }
 
-func (wrms *Wrms) AddSong(song Song) {
+func (wrms *Wrms) AddSong(song *Song) {
 	wrms.rwlock.Lock()
 
 	startPlayingAgain := wrms.playing && wrms.CurrentSong.Load() == nil
-	wrms.Songs = append(wrms.Songs, song)
-	s := &wrms.Songs[len(wrms.Songs)-1]
-	wrms.queue.Add(s)
 
 	if wrms.Config.timeBonus != 0 {
 		llog.Info("Apply time bonus %v", wrms.Config.timeBonus)
 		wrms.queue.applyTimeBonus(wrms.Config.timeBonus)
 	}
 
-	ev := wrms.newEvent("add", []Song{song})
+	wrms.Songs = append(wrms.Songs, song)
+	s := wrms.Songs[len(wrms.Songs)-1]
+	wrms.queue.Add(s)
+
+	ev := wrms.newEvent("add", []*Song{song})
 	wrms.rwlock.Unlock()
 
 	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
@@ -319,7 +320,7 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 	wrms.rwlock.Lock()
 
 	for i := 0; i < len(wrms.Songs); i++ {
-		s := &wrms.Songs[i]
+		s := wrms.Songs[i]
 		if s.Uri != songUri {
 			continue
 		}
@@ -329,7 +330,7 @@ func (wrms *Wrms) DeleteSong(songUri string) {
 
 		wrms.queue.RemoveSong(s)
 
-		ev := wrms.newEvent("delete", []Song{*s})
+		ev := wrms.newEvent("delete", []*Song{s})
 		wrms.rwlock.Unlock()
 
 		wrms.Broadcast(ev)
@@ -383,7 +384,7 @@ func (wrms *Wrms) _next() {
 		cmd = "play"
 	}
 
-	ev := wrms.newEvent(cmd, []Song{*next})
+	ev := wrms.newEvent(cmd, []*Song{next})
 	wrms.rwlock.Unlock()
 
 	wrms.Broadcast(ev)
@@ -421,7 +422,7 @@ func (wrms *Wrms) PlayPause() {
 		wrms.Player.Play(currentSong)
 	}
 
-	ev := wrms.newEvent("play", []Song{*currentSong})
+	ev := wrms.newEvent("play", []*Song{currentSong})
 	wrms.rwlock.Unlock()
 
 	wrms.Broadcast(ev)
@@ -431,7 +432,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 	wrms.rwlock.Lock()
 
 	for i := 0; i < len(wrms.Songs); i++ {
-		s := &wrms.Songs[i]
+		s := wrms.Songs[i]
 		if s.Uri != songUri {
 			continue
 		}
@@ -488,7 +489,7 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 		}
 
 		wrms.queue.Adjust(s)
-		ev := wrms.newEvent("update", []Song{*s})
+		ev := wrms.newEvent("update", []*Song{s})
 		wrms.rwlock.Unlock()
 
 		wrms.Broadcast(ev)
@@ -496,6 +497,6 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 	}
 }
 
-func (wrms *Wrms) Search(pattern map[string]string) chan []Song {
+func (wrms *Wrms) Search(pattern map[string]string) chan []*Song {
 	return wrms.Player.Search(pattern)
 }

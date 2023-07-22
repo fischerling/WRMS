@@ -95,6 +95,6 @@ func (b *UploadBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + path.Join(b.uploadDir, song.Uri))
 }
 
-func (b *UploadBackend) Search(map[string]string) []Song {
+func (b *UploadBackend) Search(map[string]string) []*Song {
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 
 type Backend interface {
 	Play(song *Song, player Player)
-	Search(map[string]string) []Song
+	Search(map[string]string) []*Song
 	OnSongFinished(song *Song)
 }
 
@@ -15,12 +15,12 @@ type DummyBackend struct{}
 
 func (dummy *DummyBackend) Play(song *Song, player Player) {}
 func (dummy *DummyBackend) OnSongFinished(song *Song)      {}
-func (dummy *DummyBackend) Search(map[string]string) []Song {
+func (dummy *DummyBackend) Search(map[string]string) []*Song {
 	s := NewDummySong("Dummy Mc Crashtest", "foo")
-	return []Song{s}
+	return []*Song{s}
 }
 
-func NewDummySong(title, artist string) Song {
+func NewDummySong(title, artist string) *Song {
 	h := sha1.New()
 	h.Write([]byte(title))
 	h.Write([]byte(artist))
