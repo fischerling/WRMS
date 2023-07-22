@@ -92,6 +92,7 @@
         }
       }
 
+      let timeBonus = 0.0;
       let isAdmin = false;
       let searchId = 0;
       let songs = [];
@@ -213,6 +214,11 @@
       }
 
       function handleAdd(added) {
+        if (timeBonus != 0) {
+          for (song of songs) {
+            song.weight += timeBonus
+          }
+        }
         songs = songs.concat(added);
         renderPlaylist();
       }
@@ -279,6 +285,9 @@
         console.log("Received Event: ", message);
         const cmd = JSON.parse(message.data);
         switch (cmd.cmd) {
+          case "timeBonus":
+            timeBonus = cmd.timeBonus;
+            break;
           case "add":
             handleAdd(cmd.songs)
             break;

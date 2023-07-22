@@ -226,7 +226,13 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 	curEventId := wrms.eventId.Load()
 	conn.nextEvent = curEventId + 1
 
-	initialCmds := []Event{}
+	initialCmds := []interface{}{}
+
+	if wrms.Config.timeBonus != 0 {
+		ev := map[string]any{"cmd": "timeBonus", "timeBonus": wrms.Config.timeBonus}
+		initialCmds = append(initialCmds, ev)
+	}
+
 	if wrms.playing {
 		var songs []Song
 		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
