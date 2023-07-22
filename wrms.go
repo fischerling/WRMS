@@ -440,10 +440,10 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 
 			if _, ok := s.Downvotes[connId]; ok {
 				delete(s.Downvotes, connId)
-				s.Weight += 2
+				s.Weight += 2.0
 				llog.Debug("Flip downvote")
 			} else {
-				s.Weight += 1
+				s.Weight += 1.0
 			}
 
 			s.Upvotes[connId] = struct{}{}
@@ -457,9 +457,9 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 			if _, ok := s.Upvotes[connId]; ok {
 				delete(s.Upvotes, connId)
 				llog.Debug("Flip upvote")
-				s.Weight -= 2
+				s.Weight -= 2.0
 			} else {
-				s.Weight -= 1
+				s.Weight -= 1.0
 			}
 
 			s.Downvotes[connId] = struct{}{}
@@ -467,11 +467,11 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 		case "unvote":
 			if _, ok := s.Downvotes[connId]; ok {
 				delete(s.Downvotes, connId)
-				s.Weight += 1
+				s.Weight += 1.0
 
 			} else if _, ok := s.Upvotes[connId]; ok {
 				delete(s.Upvotes, connId)
-				s.Weight -= 1
+				s.Weight -= 1.0
 			} else {
 				llog.Error("Double unvote of song %s by connections %s", songUri, connId)
 				return
