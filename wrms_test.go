@@ -124,3 +124,20 @@ func TestWrmsDoubleAdd(t *testing.T) {
 	wrms.AdjustSongWeight(alice, s1.Uri, "up")
 	wrms.Next()
 }
+
+func TestFlipVote(t *testing.T) {
+	wrms := Wrms{Player: &mockPlayer{}}
+	s := NewDummySong("song", "snfmt")
+
+	wrms.AddSong(s)
+	wrms.AdjustSongWeight(alice, s.Uri, "up")
+	if wrms.Songs[0].Weight != 1 {
+		t.Log("Weight is not 1")
+		t.Fail()
+	}
+	wrms.AdjustSongWeight(alice, s.Uri, "down")
+	if wrms.Songs[0].Weight != -1 {
+		t.Log("Weight is not -1")
+		t.Fail()
+	}
+}
