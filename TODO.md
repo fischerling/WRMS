@@ -6,7 +6,7 @@
 - [X] continue playback when song is added to empty playlist
 - [ ] support advanced search
   - [X] client
-  - [ ] spotify
+  - [X] spotify
   - [X] local
 - [X] Show more Song information
   - [ ] Fetch and show cover art

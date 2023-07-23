@@ -9,7 +9,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/librespot-org/librespot-golang/Spotify"
@@ -21,7 +23,9 @@ import (
 )
 
 const (
-	deviceName = "wrms"
+	deviceName             = "wrms"
+	searchResults          = 25
+	displayedSearchResults = 10
 )
 
 type SpotifyConfig struct {
@@ -30,11 +34,16 @@ type SpotifyConfig struct {
 }
 
 type SpotifyBackend struct {
-	session *core.Session
+	session                *core.Session
+	searchResults          int
+	displayedSearchResults int
 }
 
 func NewSpotify(config *SpotifyConfig) (*SpotifyBackend, error) {
-	spotify := SpotifyBackend{}
+	spotify := SpotifyBackend{
+		searchResults:          searchResults,
+		displayedSearchResults: displayedSearchResults}
+
 	if config == nil {
 		config = &SpotifyConfig{}
 	}
@@ -98,39 +107,90 @@ func (spotify *SpotifyBackend) Play(song *Song, player Player) {
 
 func (spotify *SpotifyBackend) Search(patterns map[string]string) []*Song {
 	session := spotify.session
-	keyword := ""
+	results := []*Song{}
+	resultMap := make(map[string]struct{})
+
 	for _, p := range []string{"pattern", "title", "artist", "album"} {
-		if v, ok := patterns[p]; ok {
-			keyword = v
-			break
+		pattern, ok := patterns[p]
+		if !ok {
+			continue
+		}
+
+		resp, err := session.Mercury().Search(pattern,
+			spotify.searchResults,
+			session.Country(),
+			session.Username())
+
+		if err != nil {
+			llog.Error("Failed to search: %s", err)
+			return nil
+		}
+
+		res := resp.Results
+		llog.DDebug("Search results for %v", pattern)
+		llog.DDebug("=============================")
+
+		if res.Error != nil {
+			llog.Error("Search result error: %s", res.Error)
+		}
+		llog.DDebug("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
+
+	out:
+		for _, track := range res.Tracks.Hits {
+			// filter matching tracks
+			for _, cond := range []string{"pattern", "title", "artist", "album"} {
+				cond_pattern, ok := patterns[cond]
+				if !ok {
+					continue
+				}
+
+				simpleMatch, err := regexp.Compile(fmt.Sprintf(".*%s.*", cond_pattern))
+				if err != nil {
+					llog.Fatal("Failed to compile matching regex '%s': %v",
+						fmt.Sprintf(".*%s.*", cond_pattern), err)
+				}
+
+				switch cond {
+				case "title":
+					if !simpleMatch.MatchString(track.Name) {
+						continue out
+					}
+
+				case "album":
+					if !simpleMatch.MatchString(track.Album.Name) {
+						continue out
+					}
+
+				case "artist":
+					matchingArtist := false
+					for _, a := range track.Artists {
+						if simpleMatch.MatchString(a.Name) {
+							matchingArtist = true
+							break
+						}
+					}
+
+					if !matchingArtist {
+						continue out
+					}
+				}
+			}
+
+			uriParts := strings.Split(track.Uri, ":")
+			uri := uriParts[len(uriParts)-1]
+
+			if _, ok := resultMap[uri]; !ok {
+				s := NewSong(track.Name, track.Artists[0].Name, "spotify", uri)
+				s.Album = track.Album.Name
+				resultMap[uri] = struct{}{}
+				results = append(results, s)
+			}
 		}
 	}
 
-	resp, err := session.Mercury().Search(keyword, 12, session.Country(), session.Username())
-
-	if err != nil {
-		llog.Error("Failed to search: %s", err)
-		return nil
+	// Think about a way to better sort ther results by relevance
+	if len(results) > spotify.displayedSearchResults {
+		return results[:spotify.displayedSearchResults]
 	}
-
-	res := resp.Results
-
-	llog.DDebug("Search results for %s", keyword)
-	llog.DDebug("=============================")
-
-	if res.Error != nil {
-		llog.Error("Search result error: %s", res.Error)
-	}
-
-	llog.Debug("\nTracks: %d (total %d)\n", len(res.Tracks.Hits), res.Tracks.Total)
-
-	results := []*Song{}
-	for _, track := range res.Tracks.Hits {
-		uriParts := strings.Split(track.Uri, ":")
-		s := NewSong(track.Name, track.Artists[0].Name, "spotify", uriParts[len(uriParts)-1])
-		s.Album = track.Album.Name
-		results = append(results, s)
-	}
-
 	return results
 }
