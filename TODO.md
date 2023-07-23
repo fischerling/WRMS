@@ -7,7 +7,7 @@
 - [ ] support advanced search
   - [X] client
   - [ ] spotify
-  - [ ] local
+  - [X] local
 - [X] Show more Song information
   - [ ] Fetch and show cover art
   - [X] Show a song's Album

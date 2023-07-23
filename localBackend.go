@@ -129,11 +129,38 @@ func (b *LocalBackend) Play(song *Song, player Player) {
 	player.PlayUri("file://" + song.Uri)
 }
 
-func (b *LocalBackend) Search(patterns map[string]string) (results []*Song) {
-	pattern := strings.ToLower(patterns["pattern"])
+func genericQuery(pattern string) string {
+	return fmt.Sprintf("SELECT * FROM songs WHERE Title LIKE '%%%s%%' OR Artist LIKE '%%%s%%' OR Album LIKE '%%%s%%'", pattern, pattern, pattern)
+}
 
-	query := fmt.Sprintf("SELECT * FROM songs WHERE Title LIKE '%%%s%%' OR Artist LIKE '%%%s%%'",
-		pattern, pattern)
+func advancedQuery(patterns map[string]string) string {
+	query := "Select * FROM songs WHERE"
+	query_parts := []string{}
+	for _, comp := range []string{"title", "album", "artist"} {
+		if pattern, ok := patterns[comp]; ok {
+			query_parts = append(query_parts, fmt.Sprintf("%s LIKE '%%%s%%'", strings.Title(comp), pattern))
+		}
+	}
+
+	return fmt.Sprintf("%s %s", query, strings.Join(query_parts, " OR "))
+}
+
+func (b *LocalBackend) Search(patterns map[string]string) (results []*Song) {
+	advanced := false
+	for _, comp := range []string{"title", "album", "artist"} {
+		if _, ok := patterns[comp]; ok {
+			advanced = true
+			break
+		}
+	}
+
+	var query string
+	if advanced {
+		query = advancedQuery(patterns)
+	} else {
+		query = genericQuery(strings.ToLower(patterns["pattern"]))
+	}
+
 	llog.Debug("Searching in local DB using: %q", query)
 	rows, err := b.db.Query(query)
 	if err != nil {
