@@ -22,8 +22,8 @@ type Song struct {
 	Album     string                 `json:"album"`
 	Year      int                    `json:"year"`
 	index     int                    `json:"-"` // used by heap.Interface
-	Upvotes   map[uuid.UUID]struct{} `json:"-"`
-	Downvotes map[uuid.UUID]struct{} `json:"-"`
+	Upvotes   map[uuid.UUID]struct{} `json:"upvotes"`
+	Downvotes map[uuid.UUID]struct{} `json:"downvotes"`
 }
 
 func NewSong(title, artist, source, uri string) *Song {

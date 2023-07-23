@@ -112,8 +112,8 @@
       }
 
       function appendSongDetails(song, details) {
-        let possibleDetails = ['upvotes', 'downvotes', 'album', 'year'];
-        for (const detail of possibleDetails) {
+        let possibleSimpleDetails = ['album', 'year'];
+        for (const detail of possibleSimpleDetails) {
           if (Object.hasOwn(song, detail)) {
             let value = song[detail];
             if (!value) {
@@ -122,6 +122,17 @@
             let label = detail.charAt(0).toUpperCase() + detail.slice(1);
             details.appendChild(document.createTextNode(label + ': ' + value + ' '));
           }
+        }
+
+        if (Object.hasOwn(song, 'upvotes') && Object.hasOwn(song, 'downvotes')) {
+            let uvs = Object.keys(song['upvotes']).length
+            details.appendChild(document.createTextNode('Upvotes: ' + uvs + ' '));
+
+            let dvs = Object.keys(song['downvotes']).length
+            details.appendChild(document.createTextNode('Downvotes: ' + dvs + ' '));
+
+            let timeBonus = song.weight - uvs + dvs
+            details.appendChild(document.createTextNode('TimeBonus: ' + timeBonus.toFixed(1) + ' '));
         }
       }
 
