@@ -99,11 +99,13 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for result := range resultsChan {
 			if len(result) > 0 {
-				conn.Send(wrms.newPrivateEvent(searchId, "search", result))
+				// We can send the search results directly without going through the ordered channel
+				conn._sendEv(wrms.newPrivateEvent(searchId, "search", result))
 			}
 		}
 
-		conn.Send(wrms.newPrivateEvent(searchId, "finish-search", nil))
+		// We can send the search results directly without going through the ordered channel
+		conn._sendEv(wrms.newPrivateEvent(searchId, "finish-search", nil))
 		llog.Debug("searching for %v took %v", searchQuery, time.Since(start))
 	}()
 

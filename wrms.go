@@ -63,8 +63,21 @@ type Event struct {
 	Songs []*Song `json:"songs"`
 }
 
+func (wrms *Wrms) incEventId() uint64 {
+	id := wrms.eventId.Add(1)
+	llog.DDebug("Increment event id to: %d", id)
+	return id
+}
+
+// A private event does not appear in the global event order and
+// thus does not increment the global event count.
+// Private events are used for example to report search results.
+func (wrms *Wrms) newPrivateEvent(id uint64, event string, songs []*Song) Event {
+	return Event{Id: id, Event: event, Songs: songs}
+}
+
 func (wrms *Wrms) newEvent(event string, songs []*Song) Event {
-	return Event{Id: wrms.eventId.Add(1), Event: event, Songs: songs}
+	return Event{Id: wrms.incEventId(), Event: event, Songs: songs}
 }
 
 func (wrms *Wrms) newNotification(notification string) Event {
@@ -126,6 +139,27 @@ func (c *Connection) Send(ev Event) {
 	c.refs.Add(-1)
 }
 
+func (conn *Connection) _send(evs []interface{}) error {
+	for _, ev := range evs {
+		data, err := json.Marshal(ev)
+		if err != nil {
+			llog.Warning("Encoding the initial command %v failed with %s", ev, err)
+			return err
+		}
+
+		sdata := string(data)
+		llog.Debug("Sending ev %s to %s", sdata, conn.Id)
+		fmt.Fprintf(conn.w, "data: %s\n\n", sdata)
+		conn.flusher.Flush()
+	}
+
+	return nil
+}
+
+func (conn *Connection) _sendEv(ev Event) error {
+	return conn._send([]interface{}{ev})
+}
+
 func (conn *Connection) serve() {
 	// Map to store future events to send them in order
 	toSend := make(map[uint64]*Event)
@@ -152,18 +186,12 @@ func (conn *Connection) serve() {
 			}
 		}
 
-		conn.nextEvent++
-
-		data, err := json.Marshal(ev)
-		if err != nil {
-			llog.Error("Encoding the %s event failed with %s", ev.Event, err)
-			return
+		// increment the expected event id
+		if ev.Id == conn.nextEvent {
+			conn.nextEvent++
 		}
 
-		sdata := string(data)
-		llog.Debug("Sending ev %s to %s", sdata, conn.Id)
-		fmt.Fprintf(conn.w, "data: %s\n\n", sdata)
-		conn.flusher.Flush()
+		conn._sendEv(ev)
 	}
 }
 
@@ -223,7 +251,6 @@ func (wrms *Wrms) delConn(conn *Connection) {
 
 func (wrms *Wrms) initConn(conn *Connection) error {
 	wrms.rwlock.RLock()
-	defer wrms.rwlock.RUnlock()
 
 	curEventId := wrms.eventId.Load()
 	conn.nextEvent = curEventId + 1
@@ -240,15 +267,16 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 		if currentSong := wrms.CurrentSong.Load(); currentSong != nil {
 			songs = []*Song{currentSong}
 		}
-		initialCmds = append(initialCmds, wrms.newEvent("play", songs))
+		initialCmds = append(initialCmds, wrms.newPrivateEvent(curEventId, "play", songs))
 	}
 
 	upvoted := []*Song{}
 	downvoted := []*Song{}
 	if len(wrms.Songs) > 0 {
-		initialCmds = append(initialCmds, wrms.newEvent("add", wrms.Songs))
+		initialCmds = append(initialCmds, wrms.newPrivateEvent(curEventId, "add", wrms.Songs))
 
 		for _, song := range wrms.queue.OrderedList() {
+			llog.DDebug("Looking at the votes of song: %v", song)
 			if _, ok := song.Upvotes[conn.Id]; ok {
 				upvoted = append(upvoted, song)
 			} else if _, ok := song.Downvotes[conn.Id]; ok {
@@ -258,26 +286,16 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 	}
 
 	if len(upvoted) > 0 {
-		initialCmds = append(initialCmds, wrms.newEvent("upvoted", upvoted))
+		initialCmds = append(initialCmds, wrms.newPrivateEvent(curEventId, "upvoted", upvoted))
 	}
 
 	if len(downvoted) > 0 {
-		initialCmds = append(initialCmds, wrms.newEvent("downvoted", downvoted))
+		initialCmds = append(initialCmds, wrms.newPrivateEvent(curEventId, "downvoted", downvoted))
 	}
 
-	for _, cmd := range initialCmds {
-		llog.Info("Sending initial cmd %v", cmd)
-		data, err := json.Marshal(cmd)
-		if err != nil {
-			llog.Warning("Encoding the initial command %v failed with %s", cmd, err)
-			return err
-		}
-
-		fmt.Fprintf(conn.w, "data: %s\n\n", string(data))
-		conn.flusher.Flush()
-	}
-
-	return nil
+	wrms.rwlock.RUnlock()
+	llog.Info("Sending initial cmds %v", initialCmds)
+	return conn._send(initialCmds)
 }
 
 func (wrms *Wrms) GetConn(connId uuid.UUID) *Connection {
