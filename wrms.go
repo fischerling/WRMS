@@ -138,6 +138,7 @@ func (conn *Connection) serve() {
 			delete(toSend, conn.nextEvent)
 			// We have not received the next event yet -> receive a new event
 		} else {
+			llog.DDebug("%v: Awaiting event %d", conn.Id, conn.nextEvent)
 			select {
 			case ev = <-conn.Events:
 			case <-conn.ctx.Done():
@@ -145,6 +146,7 @@ func (conn *Connection) serve() {
 			}
 			// We received a future object -> store it and continue
 			if ev.Id > conn.nextEvent {
+				llog.DDebug("%v: Received future event %d", conn.Id, ev.Id)
 				toSend[ev.Id] = &ev
 				continue
 			}
