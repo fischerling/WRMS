@@ -65,13 +65,15 @@ func (pl *Playlist) RemoveSong(s *Song) {
 func (pl *Playlist) OrderedList() []*Song {
 	songs := make([]*Song, 0, pl.Len())
 
-	cpy := make(Playlist, 0, pl.Len())
+	cpy := make(Playlist, pl.Len())
 	copy(cpy, *pl)
+	llog.DDebug("copying %v returned %v", *pl, cpy)
 
 	for cpy.Len() > 0 {
 		songs = append(songs, heap.Pop(&cpy).(*Song))
 	}
 
+	llog.DDebug("ordering queue %v returned %v", pl, songs)
 	return songs
 }
 

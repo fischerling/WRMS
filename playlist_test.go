@@ -133,3 +133,18 @@ func TestPlAdd3AdjustAdjustPop(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestPlOrderedList(t *testing.T) {
+	var pl Playlist
+	s := NewDummySong("Foo", "Bar")
+	pl.Add(s)
+	l := pl.OrderedList()
+	if len(pl) != len(l) {
+		t.Log("size of pl and ordered list differs")
+		t.Fail()
+	}
+	if pl[0] != l[0] {
+		t.Log("element of pl and ordered list differs")
+		t.Fail()
+	}
+}
