@@ -89,7 +89,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := wrms.eventId.Add(1)
+	searchId := wrms.eventId.Load()
 
 	llog.Debug("Searching for %v", searchQuery)
 
@@ -99,11 +99,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for result := range resultsChan {
 			if len(result) > 0 {
-				conn.Send(Event{Event: "search", Id: id, Songs: result})
+				conn.Send(wrms.newPrivateEvent(searchId, "search", result))
 			}
 		}
 
-		conn.Send(Event{Event: "finish-search", Id: id})
+		conn.Send(wrms.newPrivateEvent(searchId, "finish-search", nil))
 		llog.Debug("searching for %v took %v", searchQuery, time.Since(start))
 	}()
 
