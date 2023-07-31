@@ -53,7 +53,7 @@ func NewMpvPlayer(wrms *Wrms, backends []string) *MpvPlayer {
 		case "local":
 			b = NewLocalBackend(wrms.Config.LocalMusicDir)
 		case "upload":
-			b = NewUploadBackend(wrms.Config.UploadDir)
+			b, err = NewUploadBackend(wrms.Config.UploadDir)
 		default:
 			llog.Error("Not supported backend %s", backend)
 		}

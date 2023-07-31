@@ -17,20 +17,22 @@ type UploadBackend struct {
 	uploadDir string
 }
 
-func NewUploadBackend(uploadDir string) *UploadBackend {
+func NewUploadBackend(uploadDir string) (*UploadBackend, error) {
 	b := UploadBackend{uploadDir: uploadDir}
 
 	dirInfo, err := os.Stat(uploadDir)
 
 	if os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0750)
+		if err = os.MkdirAll(uploadDir, 0750); err != nil {
+			return nil, err
+		}
 	} else if !dirInfo.IsDir() {
 		llog.Fatal("upload directory %s exists and is not a directory", uploadDir)
 	}
 
 	b.setupUploadRoute()
 
-	return &b
+	return &b, nil
 }
 
 func (b *UploadBackend) upload(w http.ResponseWriter, r *http.Request) {
