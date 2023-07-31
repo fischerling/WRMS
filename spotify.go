@@ -14,10 +14,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/librespot-org/librespot-golang/Spotify"
-	"github.com/librespot-org/librespot-golang/librespot"
-	"github.com/librespot-org/librespot-golang/librespot/core"
-	"github.com/librespot-org/librespot-golang/librespot/utils"
+	"github.com/fischerling/librespot-golang/Spotify"
+	"github.com/fischerling/librespot-golang/librespot"
+	"github.com/fischerling/librespot-golang/librespot/core"
+	"github.com/fischerling/librespot-golang/librespot/utils"
 
 	"muhq.space/go/wrms/llog"
 )
