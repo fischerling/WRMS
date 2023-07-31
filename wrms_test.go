@@ -142,7 +142,7 @@ func TestFlipVote(t *testing.T) {
 
 func TestTimeBonus(t *testing.T) {
 	wrms := Wrms{Player: &mockPlayer{}}
-	wrms.Config.timeBonus = 0.1
+	wrms.Config.TimeBonus = 0.1
 	songs := []*Song{
 		NewDummySong("song1", "snfmt"),
 		NewDummySong("song2", "snfmt"),

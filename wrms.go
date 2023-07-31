@@ -85,8 +85,8 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 
 	initialCmds := []interface{}{}
 
-	if wrms.Config.timeBonus != 0 {
-		ev := map[string]any{"cmd": "timeBonus", "timeBonus": wrms.Config.timeBonus}
+	if wrms.Config.TimeBonus != 0 {
+		ev := map[string]any{"cmd": "timeBonus", "timeBonus": wrms.Config.TimeBonus}
 		initialCmds = append(initialCmds, ev)
 	}
 
@@ -149,9 +149,9 @@ func (wrms *Wrms) AddSong(song *Song) {
 
 	startPlayingAgain := wrms.playing && wrms.CurrentSong.Load() == nil
 
-	if wrms.Config.timeBonus != 0 {
-		llog.Info("Apply time bonus %v", wrms.Config.timeBonus)
-		wrms.queue.applyTimeBonus(wrms.Config.timeBonus)
+	if wrms.Config.TimeBonus != 0 {
+		llog.Info("Apply time bonus %v", wrms.Config.TimeBonus)
+		wrms.queue.applyTimeBonus(wrms.Config.TimeBonus)
 	}
 
 	wrms._addSong(song)
