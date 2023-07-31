@@ -243,11 +243,7 @@ func eventsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	llog.Info("New SSE connection with id %v", connId)
-	err = wrms.initConn(conn)
-	if err != nil {
-		return
-	}
-
+	wrms.initConn(conn)
 	conn.serve()
 }
 

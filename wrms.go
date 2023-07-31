@@ -77,7 +77,7 @@ func (wrms *Wrms) delConn(conn *Connection) {
 	}
 }
 
-func (wrms *Wrms) initConn(conn *Connection) error {
+func (wrms *Wrms) initConn(conn *Connection) {
 	wrms.rwlock.RLock()
 
 	curEventId := wrms.eventId.Load()
@@ -123,7 +123,7 @@ func (wrms *Wrms) initConn(conn *Connection) error {
 
 	wrms.rwlock.RUnlock()
 	llog.Info("Sending initial cmds %v", initialCmds)
-	return conn._send(initialCmds)
+	conn._send(initialCmds)
 }
 
 func (wrms *Wrms) GetConn(connId uuid.UUID) *Connection {

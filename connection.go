@@ -67,12 +67,11 @@ func (c *Connection) Send(ev Event) {
 	c.refs.Add(-1)
 }
 
-func (conn *Connection) _send(evs []interface{}) error {
+func (conn *Connection) _send(evs []interface{}) {
 	for _, ev := range evs {
 		data, err := json.Marshal(ev)
 		if err != nil {
-			llog.Warning("Encoding the initial command %v failed with %s", ev, err)
-			return err
+			llog.Fatal("Encoding the initial command %v failed with %s", ev, err)
 		}
 
 		sdata := string(data)
@@ -80,12 +79,10 @@ func (conn *Connection) _send(evs []interface{}) error {
 		fmt.Fprintf(conn.w, "data: %s\n\n", sdata)
 		conn.flusher.Flush()
 	}
-
-	return nil
 }
 
-func (conn *Connection) _sendEv(ev Event) error {
-	return conn._send([]interface{}{ev})
+func (conn *Connection) _sendEv(ev Event) {
+	conn._send([]interface{}{ev})
 }
 
 func (conn *Connection) serve() {
