@@ -138,7 +138,8 @@ func advancedQuery(patterns map[string]string) string {
 	query_parts := []string{}
 	for _, comp := range []string{"title", "album", "artist"} {
 		if pattern, ok := patterns[comp]; ok {
-			query_parts = append(query_parts, fmt.Sprintf("%s LIKE '%%%s%%'", strings.Title(comp), pattern))
+			titleComp := strings.Title(comp) //nolint:staticcheck
+			query_parts = append(query_parts, fmt.Sprintf("%s LIKE '%%%s%%'", titleComp, pattern))
 		}
 	}
 
