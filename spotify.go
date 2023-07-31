@@ -231,7 +231,6 @@ func (spotify *SpotifyBackend) loadPlaylist(playlist string) []*Song {
 			continue
 		}
 
-
 		uriParts := strings.Split(uri, ":")
 		uri = uriParts[len(uriParts)-1]
 		track, err := spotify.session.Mercury().GetTrack(utils.Base62ToHex(uri))
