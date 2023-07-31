@@ -126,13 +126,16 @@
 
         if (Object.hasOwn(song, 'upvotes') && Object.hasOwn(song, 'downvotes')) {
             let uvs = Object.keys(song['upvotes']).length
-            details.appendChild(document.createTextNode('Upvotes: ' + uvs + ' '));
+            let uvsLabel = document.createTextNode('⇑: ' + uvs + ' ');
+            details.appendChild(uvsLabel);
 
             let dvs = Object.keys(song['downvotes']).length
-            details.appendChild(document.createTextNode('Downvotes: ' + dvs + ' '));
+            let dvsLabel = document.createTextNode('⇓: ' + dvs + ' ');
+            details.appendChild(dvsLabel);
 
             let timeBonus = song.weight - uvs + dvs
-            details.appendChild(document.createTextNode('TimeBonus: ' + timeBonus.toFixed(1) + ' '));
+            let timeBonusLabel = document.createTextNode('⌛: ' + timeBonus.toFixed(1) + ' ');
+            details.appendChild(timeBonusLabel);
         }
       }
 
