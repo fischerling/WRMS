@@ -275,10 +275,15 @@ func main() {
 	flag.StringVar(&config.LocalMusicDir,
 		"serve-music-dir", config.LocalMusicDir, "local music directory to serve")
 	flag.StringVar(&config.UploadDir, "upload-dir", config.UploadDir, "directory to upload songs to")
+	playlists := flag.String("playlists", "", "playlists to load")
 	flag.Parse()
 
 	if *backends != "" {
 		config.Backends = strings.Split(*backends, " ")
+	}
+
+	if *playlists != "" {
+		config.Playlists = append(config.Playlists, strings.Split(*playlists, " ")...)
 	}
 
 	llog.SetLogLevelFromString(config.LogLevel)

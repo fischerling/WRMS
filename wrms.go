@@ -54,6 +54,11 @@ func NewWrms(config Config) *Wrms {
 	wrms := Wrms{}
 	wrms.Config = config
 	wrms.Player = NewMpvPlayer(&wrms, config.Backends)
+
+	if len(wrms.Config.Playlists) > 0 {
+		wrms.loadPlaylists(wrms.Config.Playlists)
+	}
+
 	return &wrms
 }
 
@@ -134,6 +139,11 @@ func (wrms *Wrms) Broadcast(ev Event) {
 	})
 }
 
+func (wrms *Wrms) _addSong(song *Song) {
+	wrms.Songs = append(wrms.Songs, song)
+	wrms.queue.Add(song)
+}
+
 func (wrms *Wrms) AddSong(song *Song) {
 	wrms.rwlock.Lock()
 
@@ -144,14 +154,12 @@ func (wrms *Wrms) AddSong(song *Song) {
 		wrms.queue.applyTimeBonus(wrms.Config.timeBonus)
 	}
 
-	wrms.Songs = append(wrms.Songs, song)
-	s := wrms.Songs[len(wrms.Songs)-1]
-	wrms.queue.Add(s)
+	wrms._addSong(song)
 
 	ev := wrms.newEvent("add", []*Song{song})
 	wrms.rwlock.Unlock()
 
-	llog.Info("Added song %s (ptr=%p) to Songs", s.Uri, s)
+	llog.Info("Added song %s (ptr=%p) to Songs", song.Uri, song)
 	wrms.Broadcast(ev)
 
 	if startPlayingAgain {
@@ -342,4 +350,18 @@ func (wrms *Wrms) AdjustSongWeight(connId uuid.UUID, songUri string, vote string
 
 func (wrms *Wrms) Search(pattern map[string]string) chan []*Song {
 	return wrms.Player.Search(pattern)
+}
+
+func (wrms *Wrms) loadPlaylists(playlists []string) {
+	for _, playlist := range playlists {
+		wrms.appendPlaylist(playlist)
+	}
+}
+
+func (wrms *Wrms) appendPlaylist(playlist string) {
+	songs := wrms.Player.LoadPlaylist(playlist)
+
+	for _, song := range songs {
+		wrms._addSong(song)
+	}
 }

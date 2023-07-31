@@ -194,3 +194,56 @@ func (spotify *SpotifyBackend) Search(patterns map[string]string) []*Song {
 	}
 	return results
 }
+
+func (spotify *SpotifyBackend) loadPlaylist(playlist string) []*Song {
+	playlistIdRegex := regexp.MustCompile(`playlist/.*\?`)
+	match := playlistIdRegex.FindString(playlist)
+	if match == "" {
+		llog.Error("Failed to extract spotify playlist id from %s", playlist)
+	}
+
+	id := match[len("playlist/") : len(match)-1]
+	llog.Debug("Extracted id %s from spotify playlist URI %s", id, playlist)
+
+	// _pl, err := GetPlaylistV2(spotify.session.Mercury(), id)
+	_pl, err := spotify.session.Mercury().GetPlaylist(id)
+	if err != nil {
+		llog.Error("Getting playlist %s failed with %v", playlist, err)
+		return nil
+	}
+
+	plContent := _pl.GetContents()
+	if plContent == nil {
+		llog.Warning("Playlist %s has no content", playlist)
+		return nil
+	}
+
+	plItems := plContent.GetItems()
+	if plItems == nil {
+		llog.Warning("Playlist %s content has no items", playlist)
+		return nil
+	}
+
+	var songs []*Song
+	for _, item := range plItems {
+		uri := item.GetUri()
+		if uri == "" {
+			continue
+		}
+
+
+		uriParts := strings.Split(uri, ":")
+		uri = uriParts[len(uriParts)-1]
+		track, err := spotify.session.Mercury().GetTrack(utils.Base62ToHex(uri))
+		if err != nil {
+			llog.Error("Failed to load track %s: %v", uri, err)
+		}
+
+		s := NewSong(*track.Name, *track.Artist[0].Name, "spotify", uri)
+		s.Album = *track.Album.Name
+		songs = append(songs, s)
+	}
+
+	llog.Debug("Added %d songs from spotify playlist %s", len(songs), _pl.Attributes.GetName())
+	return songs
+}

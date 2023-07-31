@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Port          int            `yaml:"port"`
 	Backends      []string       `yaml:"backends"`
+	Playlists     []string       `yaml:"playlists"`
 	LocalMusicDir string         `yaml:"music-dir"`
 	UploadDir     string         `yaml:"upload-dir"`
 	LogLevel      string         `yaml:"loglevel"`

@@ -39,7 +39,7 @@
 - [X] Fix youtube search
 - [ ] Support loading playlists
   - [ ] m3u
-  - [ ] spotify playlist
+  - [X] spotify playlist
 
 ## Configuration
 

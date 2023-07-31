@@ -20,6 +20,7 @@ type Player interface {
 	Pause()
 	Continue()
 	Stop()
+	LoadPlaylist(playlist string) []*Song
 }
 
 // command struct used to serialize player commands
@@ -252,4 +253,12 @@ func (player *MpvPlayer) Search(pattern map[string]string) chan []*Song {
 	}()
 
 	return ch
+}
+
+func (player *MpvPlayer) LoadPlaylist(playlist string) (songs []*Song) {
+	if strings.Contains(playlist, "spotify.com") {
+		songs = player.Backends["spotify"].(*SpotifyBackend).loadPlaylist(playlist)
+	}
+
+	return
 }
