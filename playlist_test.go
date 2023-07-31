@@ -148,3 +148,11 @@ func TestPlOrderedList(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestRemoveAfterOrderedList(t *testing.T) {
+	var pl Playlist
+	s := NewDummySong("Foo", "Bar")
+	pl.Add(s)
+	pl.OrderedList()
+	pl.RemoveSong(s)
+}

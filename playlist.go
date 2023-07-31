@@ -31,7 +31,6 @@ func (pl *Playlist) Pop() any {
 	n := len(old)
 	s := old[n-1]
 	old[n-1] = nil // avoid memory leak
-	s.index = -1   // for safety
 	*pl = old[0 : n-1]
 	return s
 }
