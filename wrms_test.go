@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"io"
 	"testing"
@@ -156,7 +155,8 @@ func TestTimeBonus(t *testing.T) {
 
 	exp := 0.1 * float64(len(songs)-1)
 	if wrms.Songs[0].Weight != exp {
-		t.Log(fmt.Sprintf("TimeBonus not correctly applied song %p %v expected: %v", &wrms.Songs[0], wrms.Songs[0], exp))
+		t.Logf("TimeBonus not correctly applied song %p %v expected: %v",
+			&wrms.Songs[0], wrms.Songs[0], exp)
 		t.Fail()
 	}
 }
