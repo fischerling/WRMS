@@ -17,6 +17,7 @@ func (p *mockPlayer) Playing() bool                                       { retu
 func (p *mockPlayer) Pause()                                              {}
 func (p *mockPlayer) Continue()                                           {}
 func (p *mockPlayer) Stop()                                               {}
+func (p *mockPlayer) LoadPlaylist(string) []*Song                         { return nil }
 
 var alice, _ = uuid.NewRandom()
 
