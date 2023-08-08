@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"io"
 	"testing"
@@ -48,10 +49,13 @@ func TestWrmsAdd3Next3(t *testing.T) {
 		t.Fail()
 	}
 
-	for _, s := range wrms.queue.OrderedList() {
+	oq := wrms.queue.OrderedList()
+	t.Logf("pl: %v", wrms.queue)
+	t.Logf("oq: %v", oq)
+	for _, s := range oq {
 		wrms.Next()
 		if wrms.CurrentSong.Load().Uri != s.Uri {
-			t.Log("Not returning the next song")
+			t.Logf("Not returning the next song is: %v expected: %v", wrms.CurrentSong.Load(), s)
 			t.Fail()
 		}
 	}
@@ -157,6 +161,30 @@ func TestTimeBonus(t *testing.T) {
 	if wrms.Songs[0].Weight != exp {
 		t.Logf("TimeBonus not correctly applied song %p %v expected: %v",
 			&wrms.Songs[0], wrms.Songs[0], exp)
+		t.Fail()
+	}
+}
+
+func TestMultipleAddsOrderedListUpNext(t *testing.T) {
+	wrms := Wrms{Player: &mockPlayer{}}
+	nsongs := 21
+	songs := make([]*Song, 0, nsongs)
+	for i := 0; i < nsongs; i++ {
+		songs = append(songs, NewDummySong(fmt.Sprintf("song%d", i), "snfmt"))
+	}
+
+	for _, s := range songs {
+		wrms._addSong(s)
+	}
+
+	_ = wrms.queue.OrderedList()
+
+	s := songs[16]
+	wrms.AdjustSongWeight(alice, s.Uri, "up")
+	t.Logf("queue %v", wrms.queue)
+	wrms.Next()
+	if wrms.CurrentSong.Load().Uri != s.Uri {
+		t.Logf("Not playing the upvoted song %v", s)
 		t.Fail()
 	}
 }

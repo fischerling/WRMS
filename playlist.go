@@ -72,6 +72,12 @@ func (pl *Playlist) OrderedList() []*Song {
 		songs = append(songs, heap.Pop(&cpy).(*Song))
 	}
 
+	// TODO: Use more efficiently traversable data structure
+	llog.DDebug("fix song indices in pl")
+	for i, s := range *pl {
+		s.index = i
+	}
+
 	llog.DDebug("ordering queue %v returned %v", pl, songs)
 	return songs
 }
